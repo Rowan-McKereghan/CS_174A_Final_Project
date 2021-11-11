@@ -107,7 +107,7 @@ export class SpaceshipGame extends Scene {
       ],
     ];
 
-    this.speed = 50;
+    this.speed = 80;
     this.spawn_point = 400;
     this.obstacle_spacing = 100;
     this.obstacles = [];
