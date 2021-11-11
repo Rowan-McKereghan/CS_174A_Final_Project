@@ -24,10 +24,13 @@ export class SpaceshipGame extends Scene {
     this.shapes = {
       cube: new defs.Cube(),
       cube_outline: new defs.Cube_Outline(),
+      testCube: new defs.Cube(),
     };
 
     this.materials = {
       basic: new Material(new defs.Basic_Shader()),
+      test: new Material(new defs.Phong_Shader(), 
+            {ambient: 0, diffusivity: 1, specularity: 0, color: hex_color("#808080")}),
     };
 
     this.initial_camera_location = Mat4.look_at(
@@ -71,10 +74,24 @@ export class SpaceshipGame extends Scene {
       1000
     );
 
+    let testTransform = Mat4.identity().times(Mat4.translation(0, 0, 200));;
+
     const t = program_state.animation_time / 1000,
       dt = program_state.animation_delta_time / 1000;
 
+    
+
+    //not where to put light, can't tell because the cubes don't reflect light in any way yet
+
+    //const light_position = vec4(0, 0, 1000, 0);
+
+    //program_state.lights = [light_position, color(1, 1, 1, 1), 1000**5];
+
+    //this.shapes.testCube.draw(context, program_state, testTransform, this.materials.test);
+
+    
     program_state.lights = [];
+
 
     let obstacle_transforms = [];
     for (let i = 0; i < 3; ++i) {
