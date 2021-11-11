@@ -41,23 +41,91 @@ export class SpaceshipGame extends Scene {
       vec3(0, 1, 0)
     );
 
+    this.obstacle_patterns = [
+      [
+        [1, 0, 0, 0, 0],
+        [1, 0, 0, 0, 0],
+        [1, 0, 0, 0, 0],
+        [1, 0, 0, 0, 0],
+        [1, 1, 1, 1, 1],
+      ],
+      [
+        [1, 1, 1, 1, 1],
+        [0, 0, 0, 0, 1],
+        [0, 0, 0, 0, 1],
+        [0, 0, 0, 0, 1],
+        [0, 0, 0, 0, 1],
+      ],
+      [
+        [1, 1, 1, 1, 1],
+        [1, 0, 0, 0, 1],
+        [1, 0, 0, 0, 1],
+        [1, 0, 0, 0, 1],
+        [1, 1, 1, 1, 1],
+      ],
+      [
+        [0, 0, 0, 0, 0],
+        [0, 1, 1, 1, 0],
+        [0, 1, 0, 1, 0],
+        [0, 1, 1, 1, 0],
+        [0, 0, 0, 0, 0],
+      ],
+      [
+        [1, 0, 0, 0, 1],
+        [0, 1, 0, 1, 0],
+        [0, 0, 1, 0, 0],
+        [0, 1, 0, 1, 0],
+        [1, 0, 0, 0, 1],
+      ],
+      [
+        [1, 1, 0, 0, 0],
+        [1, 1, 0, 0, 0],
+        [1, 1, 0, 0, 0],
+        [1, 1, 0, 0, 0],
+        [1, 1, 0, 0, 0],
+      ],
+      [
+        [0, 0, 0, 1, 1],
+        [0, 0, 0, 1, 1],
+        [0, 0, 0, 1, 1],
+        [0, 0, 0, 1, 1],
+        [0, 0, 0, 1, 1],
+      ],
+      [
+        [1, 1, 1, 1, 1],
+        [1, 1, 1, 1, 1],
+        [0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0],
+      ],
+      [
+        [0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0],
+        [1, 1, 1, 1, 1],
+        [1, 1, 1, 1, 1],
+      ],
+    ];
+
     this.speed = 50;
     this.spawn_point = 400;
     this.obstacle_spacing = 100;
-    this.obstacle_transforms = [];
-    this.resets = [];
-    this.resetTimers = [];
+    this.obstacles = [];
     for (let i = 0; i < 100; ++i) {
-      this.obstacle_transforms[i] = Mat4.identity().times(
+      this.obstacles.push({ transform: null, resetTimer: 0, pattern: null });
+      this.obstacles[i].transform = Mat4.identity().times(
         Mat4.translation(
           0,
           0,
           -1 * (this.spawn_point + this.obstacle_spacing * i)
         )
       );
-      this.resets[i] = 0;
-      this.resetTimers[i] =
+      this.obstacles[i].resetTimer =
         (this.obstacle_spacing * i + this.spawn_point) / this.speed;
+      this.obstacles[i].pattern =
+        this.obstacle_patterns[
+          Math.floor(Math.random() * this.obstacle_patterns.length)
+        ];
     }
   }
 
@@ -65,16 +133,16 @@ export class SpaceshipGame extends Scene {
     this.shapes.cube.draw(
       context,
       program_state,
-      this.obstacle_transforms[idx].times(
-        Mat4.translation(-8 + column * 4, 11 - row * 4, 60)
+      this.obstacles[idx].transform.times(
+        Mat4.translation(-8 + column * 4, 11 - row * 4, 50)
       ),
       this.materials.color.override({ color: hex_color('#222222') })
     );
     this.shapes.cube_outline.draw(
       context,
       program_state,
-      this.obstacle_transforms[idx].times(
-        Mat4.translation(-8 + column * 4, 11 - row * 4, 60)
+      this.obstacles[idx].transform.times(
+        Mat4.translation(-8 + column * 4, 11 - row * 4, 50)
       ),
       this.materials.basic,
       'LINES'
@@ -82,19 +150,24 @@ export class SpaceshipGame extends Scene {
   }
 
   draw_cube_set(context, program_state, idx, dt) {
-    if (this.resetTimers[idx] <= 0) {
-      this.resetTimers[idx] = this.spawn_point / this.speed;
-      this.obstacle_transforms[idx] = this.obstacle_transforms[idx].times(
+    if (this.obstacles[idx].resetTimer <= 0) {
+      this.obstacles[idx].resetTimer = this.spawn_point / this.speed;
+      this.obstacles[idx].transform = this.obstacles[idx].transform.times(
         Mat4.translation(0, 0, -1 * this.spawn_point)
       );
+      this.obstacles[idx].pattern =
+        this.obstacle_patterns[
+          Math.floor(Math.random() * this.obstacle_patterns.length)
+        ];
     }
-    this.resetTimers[idx] -= dt;
-    this.obstacle_transforms[idx] = this.obstacle_transforms[idx].times(
+    this.obstacles[idx].resetTimer -= dt;
+    this.obstacles[idx].transform = this.obstacles[idx].transform.times(
       Mat4.translation(0, 0, this.speed * dt)
     );
     for (let i = 0; i < 5; ++i) {
       for (let j = 0; j < 5; ++j) {
-        this.draw_cube(context, program_state, idx, i, j);
+        if (this.obstacles[idx].pattern[i][j] === 1)
+          this.draw_cube(context, program_state, idx, i, j);
       }
     }
   }
