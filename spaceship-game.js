@@ -29,12 +29,15 @@ export class SpaceshipGame extends Scene {
 
     this.materials = {
       basic: new Material(new defs.Basic_Shader()),
-      test: new Material(new defs.Phong_Shader(), 
-            {ambient: 0, diffusivity: 1, specularity: 0, color: hex_color("#808080")}),
+      color: new Material(new defs.Phong_Shader(), {
+        ambient: 1,
+        color: hex_color('#000000'),
+      }),
+
     };
 
     this.initial_camera_location = Mat4.look_at(
-      vec3(0, 3, 20),
+      vec3(0, 3, 50),
       vec3(0, 0, 0),
       vec3(0, 1, 0)
     );
@@ -42,7 +45,14 @@ export class SpaceshipGame extends Scene {
 
   draw_cube(context, program_state, model_transform, time, row, column) {
     model_transform = model_transform.times(
-      Mat4.translation(-8 + column * 4, 11 - row * 4, -300 + 30 * time)
+      Mat4.translation(-8 + column * 4, 11 - row * 4, 30 * time)
+    );
+    this.shapes.cube.draw(
+      context,
+      program_state,
+      // model_transform.times(Mat4.scale(0.5, 0.5, 0.5)),
+      model_transform,
+      this.materials.color.override({ color: hex_color('#222222') })
     );
     this.shapes.cube_outline.draw(
       context,
@@ -53,10 +63,22 @@ export class SpaceshipGame extends Scene {
     );
   }
 
-  draw_cube_set(context, program_state, model_transform, time) {
+  draw_cube_set(context, program_state, model_transform, reset, time) {
+    reset = 1;
     for (let i = 0; i < 5; ++i) {
       for (let j = 0; j < 5; ++j) {
-        this.draw_cube(context, program_state, model_transform, time, i, j);
+        // if (time * 30 >= 350 * reset) {
+        //   // ++reset;
+        //   reset = 1;
+        // }
+        this.draw_cube(
+          context,
+          program_state,
+          model_transform.times(Mat4.translation(0, 0, -300 * reset)),
+          time,
+          i,
+          j
+        );
       }
     }
   }
@@ -94,13 +116,19 @@ export class SpaceshipGame extends Scene {
 
 
     let obstacle_transforms = [];
-    for (let i = 0; i < 3; ++i) {
+    let resets = [];
+    for (let i = 0; i < 10; ++i) {
       obstacle_transforms[i] = Mat4.identity().times(
         Mat4.translation(0, 0, -100 * i)
       );
-      // console.log(i, obstacle_transforms[i]);
-      console.log(Mat4.translation(0, 0, -100 * i));
-      this.draw_cube_set(context, program_state, obstacle_transforms[i], t);
+      resets[i] = 0;
+      this.draw_cube_set(
+        context,
+        program_state,
+        obstacle_transforms[i],
+        resets[i],
+        t
+      );
     }
   }
 }
