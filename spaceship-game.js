@@ -33,7 +33,6 @@ export class SpaceshipGame extends Scene {
         ambient: 1,
         color: hex_color('#000000'),
       }),
-
     };
 
     this.initial_camera_location = Mat4.look_at(
@@ -41,40 +40,55 @@ export class SpaceshipGame extends Scene {
       vec3(0, 0, 0),
       vec3(0, 1, 0)
     );
+
+    this.obstacle_transforms = [];
+    this.resets = [];
+    for (let i = 0; i < 3; ++i) {
+      this.obstacle_transforms[i] = Mat4.identity().times(
+        Mat4.translation(0, 0, -100 * i)
+      );
+      this.resets[i] = 0;
+    }
+    this.speed = 150;
   }
 
-  draw_cube(context, program_state, model_transform, time, row, column) {
-    model_transform = model_transform.times(
-      Mat4.translation(-8 + column * 4, 11 - row * 4, 30 * time)
-    );
+  draw_cube(context, program_state, idx, time, row, column) {
     this.shapes.cube.draw(
       context,
       program_state,
-      // model_transform.times(Mat4.scale(0.5, 0.5, 0.5)),
-      model_transform,
+      this.obstacle_transforms[idx].times(
+        Mat4.translation(-8 + column * 4, 11 - row * 4, this.speed * time + 50)
+      ),
       this.materials.color.override({ color: hex_color('#222222') })
     );
     this.shapes.cube_outline.draw(
       context,
       program_state,
-      model_transform,
+      this.obstacle_transforms[idx].times(
+        Mat4.translation(-8 + column * 4, 11 - row * 4, this.speed * time + 50)
+      ),
       this.materials.basic,
       'LINES'
     );
   }
 
-  draw_cube_set(context, program_state, model_transform, reset, time) {
-    reset = 1;
+  draw_cube_set(context, program_state, idx, time) {
     for (let i = 0; i < 5; ++i) {
       for (let j = 0; j < 5; ++j) {
-        // if (time * 30 >= 350 * reset) {
-        //   // ++reset;
-        //   reset = 1;
-        // }
+        if (time * this.speed >= 400 * this.resets[idx]) {
+          console.log('reset');
+          // ++reset;
+          // reset = 1;
+          ++this.resets[idx];
+          this.obstacle_transforms[idx] = this.obstacle_transforms[idx].times(
+            Mat4.translation(0, 0, -400)
+          );
+        }
         this.draw_cube(
           context,
           program_state,
-          model_transform.times(Mat4.translation(0, 0, -300 * reset)),
+          // model_transform.times(Mat4.translation(0, 0, -300 * reset)),
+          idx,
           time,
           i,
           j
@@ -96,12 +110,10 @@ export class SpaceshipGame extends Scene {
       1000
     );
 
-    let testTransform = Mat4.identity().times(Mat4.translation(0, 0, 200));;
+    let testTransform = Mat4.identity().times(Mat4.translation(0, 0, 200));
 
     const t = program_state.animation_time / 1000,
       dt = program_state.animation_delta_time / 1000;
-
-    
 
     //not where to put light, can't tell because the cubes don't reflect light in any way yet
 
@@ -111,24 +123,17 @@ export class SpaceshipGame extends Scene {
 
     //this.shapes.testCube.draw(context, program_state, testTransform, this.materials.test);
 
-    
     program_state.lights = [];
 
-
-    let obstacle_transforms = [];
-    let resets = [];
-    for (let i = 0; i < 10; ++i) {
-      obstacle_transforms[i] = Mat4.identity().times(
-        Mat4.translation(0, 0, -100 * i)
-      );
-      resets[i] = 0;
-      this.draw_cube_set(
-        context,
-        program_state,
-        obstacle_transforms[i],
-        resets[i],
-        t
-      );
+    // let obstacle_transforms = [];
+    // let resets = [];
+    for (let i = 0; i < 1; ++i) {
+      // obstacle_transforms[i] = Mat4.identity().times(
+      // Mat4.translation(0, 0, -100 * i)
+      // );
+      // resets[i] = 0;
+      // this.draw_cube_set(context, program_state, obstacle_transforms[i], t);
+      this.draw_cube_set(context, program_state, i, t);
     }
   }
 }
