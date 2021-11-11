@@ -61,12 +61,12 @@ export class SpaceshipGame extends Scene {
     }
   }
 
-  draw_cube(context, program_state, idx, time, row, column) {
+  draw_cube(context, program_state, idx, row, column) {
     this.shapes.cube.draw(
       context,
       program_state,
       this.obstacle_transforms[idx].times(
-        Mat4.translation(-8 + column * 4, 11 - row * 4, this.speed * time + 70)
+        Mat4.translation(-8 + column * 4, 11 - row * 4, 60)
       ),
       this.materials.color.override({ color: hex_color('#222222') })
     );
@@ -74,14 +74,14 @@ export class SpaceshipGame extends Scene {
       context,
       program_state,
       this.obstacle_transforms[idx].times(
-        Mat4.translation(-8 + column * 4, 11 - row * 4, this.speed * time + 70)
+        Mat4.translation(-8 + column * 4, 11 - row * 4, 60)
       ),
       this.materials.basic,
       'LINES'
     );
   }
 
-  draw_cube_set(context, program_state, idx, time, dt) {
+  draw_cube_set(context, program_state, idx, dt) {
     if (this.resetTimers[idx] <= 0) {
       this.resetTimers[idx] = this.spawn_point / this.speed;
       this.obstacle_transforms[idx] = this.obstacle_transforms[idx].times(
@@ -89,9 +89,12 @@ export class SpaceshipGame extends Scene {
       );
     }
     this.resetTimers[idx] -= dt;
+    this.obstacle_transforms[idx] = this.obstacle_transforms[idx].times(
+      Mat4.translation(0, 0, this.speed * dt)
+    );
     for (let i = 0; i < 5; ++i) {
       for (let j = 0; j < 5; ++j) {
-        this.draw_cube(context, program_state, idx, time, i, j);
+        this.draw_cube(context, program_state, idx, i, j);
       }
     }
   }
@@ -115,7 +118,7 @@ export class SpaceshipGame extends Scene {
     program_state.lights = [];
 
     for (let i = 0; i < 5; ++i) {
-      this.draw_cube_set(context, program_state, i, t, dt);
+      this.draw_cube_set(context, program_state, i, dt);
     }
   }
 }
