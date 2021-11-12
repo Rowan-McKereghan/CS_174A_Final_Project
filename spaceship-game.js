@@ -25,6 +25,7 @@ export class SpaceshipGame extends Scene {
       cube: new defs.Cube(),
       cube_outline: new defs.Cube_Outline(),
       testCube: new defs.Cube(),
+      ship: new defs.Square_Pyramid_Outline(),
     };
 
     this.materials = {
@@ -41,6 +42,43 @@ export class SpaceshipGame extends Scene {
       vec3(0, 0, 0),
       vec3(0, 1, 0)
     );
+
+    this.ship_translation = Mat4.identity();
+    this.ship_rotation = Mat4.identity();
+  }
+
+  make_control_panel() {
+    // move up
+    this.key_triggered_button("Up", ["w"], () => {
+      this.ship_translation = this.ship_translation.times(Mat4.translation(0, 0.5, 0));
+      this.ship_rotation = Mat4.rotation(-Math.PI/4, 1, 0, 0);
+    }, '#6E6460', () => {
+      this.ship_rotation = Mat4.identity();
+    });
+
+    // move down
+    this.key_triggered_button("Down", ["s"], () => {
+      this.ship_translation = this.ship_translation.times(Mat4.translation(0, -0.5, 0));
+      this.ship_rotation = Mat4.rotation(Math.PI/4, 1, 0, 0);
+    }, '#6E6460', () => {
+      this.ship_rotation = Mat4.identity();
+    });
+
+    // move left
+    this.key_triggered_button("Left", ["a"], () => {
+      this.ship_translation = this.ship_translation.times(Mat4.translation(-0.5, 0, 0));
+      this.ship_rotation = Mat4.rotation(-Math.PI/4, 0, 1, 0);
+    }, '#6E6460', () => {
+      this.ship_rotation = Mat4.identity();
+    });
+
+    // move right
+    this.key_triggered_button("Right", ["d"], () => {
+      this.ship_translation = this.ship_translation.times(Mat4.translation(0.5, 0, 0));
+      this.ship_rotation = Mat4.rotation(Math.PI/4, 0, 1, 0);
+    }, '#6E6460', () => {
+      this.ship_rotation = Mat4.identity();
+    });
   }
 
   draw_cube(context, program_state, model_transform, time, row, column) {
@@ -113,6 +151,10 @@ export class SpaceshipGame extends Scene {
 
     
     program_state.lights = [];
+
+    /* SETUP SHIP */
+    let ship_transform = Mat4.identity().times(this.ship_translation).times(this.ship_rotation).times(Mat4.rotation(Math.PI/2, 1, 0, 0));
+    this.shapes.ship.draw(context, program_state, ship_transform, this.materials.basic, "LINES");
 
 
     let obstacle_transforms = [];
