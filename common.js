@@ -77,7 +77,7 @@ const Cube = (defs.Cube = class Cube extends Shape {
   }
 });
 
-const Cube_Outline = (defs.Cube_Outline = class Cube_outline extends Shape {
+const Cube_Outline = (defs.Cube_Outline = class Cube_Outline extends Shape {
   constructor() {
     super('position', 'color');
     //  TODO (Requirement 5).
@@ -139,6 +139,29 @@ const Cube_Outline = (defs.Cube_Outline = class Cube_outline extends Shape {
     this.indices = false;
   }
 });
+
+const Square_Pyramid_Outline = (defs.Square_Pyramid_Outline = class Square_Pyramid_Outline extends Shape {
+  constructor() {
+    super('position', 'color');
+
+    this.arrays.position = Vector3.cast(
+      [0, 1, 0], [-1, -1, -1],
+      [0, 1, 0], [-1, -1, 1],
+      [0, 1, 0], [1, -1, -1],
+      [0, 1, 0], [1, -1, 1],
+      [-1, -1, -1], [-1, -1, 1],
+      [-1, -1, -1], [1, -1, -1],
+      [1, -1, 1], [-1, -1, 1],
+      [1, -1, 1], [1, -1, -1]
+    );
+
+    for (let i = 0; i < 16; i++) {
+      this.arrays.color.push(color(1, 1, 1, 1));
+    }
+  }
+});
+
+
 
 const Basic_Shader = (defs.Basic_Shader = class Basic_Shader extends Shader {
   // **Basic_Shader** is nearly the simplest example of a subclass of Shader, which stores and
