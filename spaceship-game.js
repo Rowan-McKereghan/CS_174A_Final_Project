@@ -141,12 +141,16 @@ export class SpaceshipGame extends Scene {
           this.ship_translation = this.ship_translation.times(
             Mat4.translation(0, 0.5, 0)
           );
-          this.ship_rotation = Mat4.rotation(-Math.PI / 4, 1, 0, 0);
+          this.ship_rotation = this.ship_rotation.map((x, i) =>
+            Vector.from(Mat4.rotation(-Math.PI / 4, 1, 0, 0)[i]).mix(x, 0.5)
+          );
         }
       },
       '#6E6460',
       () => {
-        this.ship_rotation = Mat4.identity();
+        if (!this.game_over) {
+          this.ship_rotation = Mat4.identity();
+        }
       }
     );
 
@@ -164,7 +168,9 @@ export class SpaceshipGame extends Scene {
       },
       '#6E6460',
       () => {
-        this.ship_rotation = Mat4.identity();
+        if (!this.game_over) {
+          this.ship_rotation = Mat4.identity();
+        }
       }
     );
 
@@ -182,7 +188,9 @@ export class SpaceshipGame extends Scene {
       },
       '#6E6460',
       () => {
-        this.ship_rotation = Mat4.identity();
+        if (!this.game_over) {
+          this.ship_rotation = Mat4.identity();
+        }
       }
     );
 
@@ -200,7 +208,9 @@ export class SpaceshipGame extends Scene {
       },
       '#6E6460',
       () => {
-        this.ship_rotation = Mat4.identity();
+        if (!this.game_over) {
+          this.ship_rotation = Mat4.identity();
+        }
       }
     );
   }
@@ -288,7 +298,7 @@ export class SpaceshipGame extends Scene {
     const light_position = vec4(0, 0, 15, 1);
 
     program_state.lights = [
-      new Light(light_position, color(1.0, 1.0, 1.0, 1.0), 100000 ** 2),
+      new Light(light_position, color(1.0, 1.0, 1.0, 1.0), 100 ** 2),
     ];
 
     for (let i = 0; i < 5; ++i) {
