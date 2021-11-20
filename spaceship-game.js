@@ -127,6 +127,12 @@ export class SpaceshipGame extends Scene {
         ];
     }
 
+    this.w_pressed = false;
+    this.s_pressed = false;
+    this.a_pressed = false;
+    this.d_pressed = false;
+    this.ship_speed = 30;
+    this.ship_turn_speed = 3;
     this.ship_translation = Mat4.identity();
     this.ship_rotation = Mat4.identity();
   }
@@ -137,20 +143,22 @@ export class SpaceshipGame extends Scene {
       'Up',
       ['w'],
       () => {
-        if (!this.game_over) {
-          this.ship_translation = this.ship_translation.times(
-            Mat4.translation(0, 0.5, 0)
-          );
-          this.ship_rotation = this.ship_rotation.map((x, i) =>
-            Vector.from(Mat4.rotation(-Math.PI / 4, 1, 0, 0)[i]).mix(x, 0.5)
-          );
-        }
+        // if (!this.game_over) {
+        //   this.ship_translation = this.ship_translation.times(
+        //     Mat4.translation(0, 0.5, 0)
+        //   );
+        //   this.ship_rotation = this.ship_rotation.map((x, i) =>
+        //     Vector.from(Mat4.rotation(-Math.PI / 4, 1, 0, 0)[i]).mix(x, 0.5)
+        //   );
+        // }
+        this.w_pressed = true;
       },
       '#6E6460',
       () => {
-        if (!this.game_over) {
-          this.ship_rotation = Mat4.identity();
-        }
+        // if (!this.game_over) {
+        //   this.ship_rotation = Mat4.identity();
+        // }
+        this.w_pressed = false;
       }
     );
 
@@ -159,18 +167,20 @@ export class SpaceshipGame extends Scene {
       'Down',
       ['s'],
       () => {
-        if (!this.game_over) {
-          this.ship_translation = this.ship_translation.times(
-            Mat4.translation(0, -0.5, 0)
-          );
-          this.ship_rotation = Mat4.rotation(Math.PI / 4, 1, 0, 0);
-        }
+        // if (!this.game_over) {
+        //   this.ship_translation = this.ship_translation.times(
+        //     Mat4.translation(0, -0.5, 0)
+        //   );
+        //   this.ship_rotation = Mat4.rotation(Math.PI / 4, 1, 0, 0);
+        // }
+        this.s_pressed = true;
       },
       '#6E6460',
       () => {
-        if (!this.game_over) {
-          this.ship_rotation = Mat4.identity();
-        }
+        // if (!this.game_over) {
+        //   this.ship_rotation = Mat4.identity();
+        // }
+        this.s_pressed = false;
       }
     );
 
@@ -179,18 +189,20 @@ export class SpaceshipGame extends Scene {
       'Left',
       ['a'],
       () => {
-        if (!this.game_over) {
-          this.ship_translation = this.ship_translation.times(
-            Mat4.translation(-0.5, 0, 0)
-          );
-          this.ship_rotation = Mat4.rotation(-Math.PI / 4, 0, 1, 0);
-        }
+        // if (!this.game_over) {
+        //   this.ship_translation = this.ship_translation.times(
+        //     Mat4.translation(-0.5, 0, 0)
+        //   );
+        //   this.ship_rotation = Mat4.rotation(-Math.PI / 4, 0, 1, 0);
+        // }
+        this.a_pressed = true;
       },
       '#6E6460',
       () => {
-        if (!this.game_over) {
-          this.ship_rotation = Mat4.identity();
-        }
+        // if (!this.game_over) {
+        //   this.ship_rotation = Mat4.identity();
+        // }
+        this.a_pressed = false;
       }
     );
 
@@ -199,18 +211,20 @@ export class SpaceshipGame extends Scene {
       'Right',
       ['d'],
       () => {
-        if (!this.game_over) {
-          this.ship_translation = this.ship_translation.times(
-            Mat4.translation(0.5, 0, 0)
-          );
-          this.ship_rotation = Mat4.rotation(Math.PI / 4, 0, 1, 0);
-        }
+        // if (!this.game_over) {
+        //   this.ship_translation = this.ship_translation.times(
+        //     Mat4.translation(0.5, 0, 0)
+        //   );
+        //   this.ship_rotation = Mat4.rotation(Math.PI / 4, 0, 1, 0);
+        // }
+        this.d_pressed = true;
       },
       '#6E6460',
       () => {
-        if (!this.game_over) {
-          this.ship_rotation = Mat4.identity();
-        }
+        // if (!this.game_over) {
+        //   this.ship_rotation = Mat4.identity();
+        // }
+        this.d_pressed = false;
       }
     );
   }
@@ -303,7 +317,7 @@ export class SpaceshipGame extends Scene {
     const light_position = vec4(0, 0, 15, 1);
 
     program_state.lights = [
-      new Light(light_position, color(1.0, 1.0, 1.0, 1.0), 100 ** 2),
+      new Light(light_position, color(1.0, 1.0, 0.7, 0.8), 100 ** 2),
     ];
 
     for (let i = 0; i < 5; ++i) {
@@ -323,8 +337,48 @@ export class SpaceshipGame extends Scene {
       'LINES'
     );
 
-    if (!this.game_over) this.speed += dt * 3;
-    else {
+    if (!this.game_over) {
+      this.speed += dt * 3;
+      if (this.w_pressed) {
+        this.ship_translation = this.ship_translation.times(
+          Mat4.translation(0, this.ship_speed * dt, 0)
+        );
+        this.ship_rotation = this.ship_rotation.times(
+          Mat4.rotation((Math.PI / -4) * this.ship_turn_speed * dt, 1, 0, 0)
+        );
+      }
+      if (this.s_pressed) {
+        this.ship_translation = this.ship_translation.times(
+          Mat4.translation(0, this.ship_speed * -dt, 0)
+        );
+        this.ship_rotation = this.ship_rotation.times(
+          Mat4.rotation((Math.PI / 4) * this.ship_turn_speed * dt, 1, 0, 0)
+        );
+      }
+      if (this.a_pressed) {
+        this.ship_translation = this.ship_translation.times(
+          Mat4.translation(this.ship_speed * -dt, 0, 0)
+        );
+        this.ship_rotation = this.ship_rotation.times(
+          Mat4.rotation((Math.PI / -4) * this.ship_turn_speed * dt, 0, 1, -1)
+        );
+      }
+      if (this.d_pressed) {
+        this.ship_translation = this.ship_translation.times(
+          Mat4.translation(this.ship_speed * dt, 0, 0)
+        );
+        this.ship_rotation = this.ship_rotation.times(
+          Mat4.rotation((Math.PI / 4) * this.ship_turn_speed * dt, 0, 1, -1)
+        );
+      }
+      if (
+        !this.w_pressed &&
+        !this.s_pressed &&
+        !this.a_pressed &&
+        !this.d_pressed
+      )
+        this.ship_rotation = Mat4.identity();
+    } else {
       if (this.speed > 0.5) this.speed -= this.speed * 0.95 * dt;
       else this.speed = 0;
     }
