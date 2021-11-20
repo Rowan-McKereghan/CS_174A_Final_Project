@@ -280,9 +280,14 @@ export class SpaceshipGame extends Scene {
   }
 
   display(context, program_state) {
+    let camera_inverse = Mat4.inverse(
+      // this.ship_rotation.times(
+      this.ship_translation.times(Mat4.inverse(program_state.camera_inverse))
+      // )
+    );
     program_state.set_camera(
       this.initial_camera_location.map((x, i) =>
-        Vector.from(program_state.camera_inverse[i]).mix(x, 0.1)
+        Vector.from(camera_inverse[i]).mix(x, 0.7)
       )
     );
     program_state.projection_transform = Mat4.perspective(
