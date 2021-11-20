@@ -295,7 +295,7 @@ export class SpaceshipGame extends Scene {
     const t = program_state.animation_time / 1000,
       dt = program_state.animation_delta_time / 1000;
 
-    const light_position = vec4(0, 0, 35, 1);
+    const light_position = vec4(0, 0, 15, 1);
 
     program_state.lights = [
       new Light(light_position, color(1.0, 1.0, 1.0, 1.0), 100 ** 2),
