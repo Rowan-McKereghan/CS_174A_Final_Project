@@ -31,7 +31,6 @@ export class SpaceshipGame extends Scene {
     this.materials = {
       basic: new Material(new defs.Basic_Shader()),
       color: new Material(new defs.Phong_Shader(), {
-        ambient: 1,
         color: hex_color('#000000'),
       }),
     };
@@ -108,6 +107,7 @@ export class SpaceshipGame extends Scene {
       ],
     ];
 
+    this.game_over = false;
     this.speed = 80;
     this.spawn_point = 400;
     this.obstacle_spacing = 100;
@@ -137,10 +137,12 @@ export class SpaceshipGame extends Scene {
       'Up',
       ['w'],
       () => {
-        this.ship_translation = this.ship_translation.times(
-          Mat4.translation(0, 0.5, 0)
-        );
-        this.ship_rotation = Mat4.rotation(-Math.PI / 4, 1, 0, 0);
+        if (!this.game_over) {
+          this.ship_translation = this.ship_translation.times(
+            Mat4.translation(0, 0.5, 0)
+          );
+          this.ship_rotation = Mat4.rotation(-Math.PI / 4, 1, 0, 0);
+        }
       },
       '#6E6460',
       () => {
@@ -153,10 +155,12 @@ export class SpaceshipGame extends Scene {
       'Down',
       ['s'],
       () => {
-        this.ship_translation = this.ship_translation.times(
-          Mat4.translation(0, -0.5, 0)
-        );
-        this.ship_rotation = Mat4.rotation(Math.PI / 4, 1, 0, 0);
+        if (!this.game_over) {
+          this.ship_translation = this.ship_translation.times(
+            Mat4.translation(0, -0.5, 0)
+          );
+          this.ship_rotation = Mat4.rotation(Math.PI / 4, 1, 0, 0);
+        }
       },
       '#6E6460',
       () => {
@@ -169,10 +173,12 @@ export class SpaceshipGame extends Scene {
       'Left',
       ['a'],
       () => {
-        this.ship_translation = this.ship_translation.times(
-          Mat4.translation(-0.5, 0, 0)
-        );
-        this.ship_rotation = Mat4.rotation(-Math.PI / 4, 0, 1, 0);
+        if (!this.game_over) {
+          this.ship_translation = this.ship_translation.times(
+            Mat4.translation(-0.5, 0, 0)
+          );
+          this.ship_rotation = Mat4.rotation(-Math.PI / 4, 0, 1, 0);
+        }
       },
       '#6E6460',
       () => {
@@ -185,10 +191,12 @@ export class SpaceshipGame extends Scene {
       'Right',
       ['d'],
       () => {
-        this.ship_translation = this.ship_translation.times(
-          Mat4.translation(0.5, 0, 0)
-        );
-        this.ship_rotation = Mat4.rotation(Math.PI / 4, 0, 1, 0);
+        if (!this.game_over) {
+          this.ship_translation = this.ship_translation.times(
+            Mat4.translation(0.5, 0, 0)
+          );
+          this.ship_rotation = Mat4.rotation(Math.PI / 4, 0, 1, 0);
+        }
       },
       '#6E6460',
       () => {
@@ -208,7 +216,9 @@ export class SpaceshipGame extends Scene {
       shipY + 1 >= cubeY - 1 &&
       shipY - 1 <= cubeY + 1
     ) {
-      this.speed = 0;
+      this.game_over = true;
+      console.log(this.speed);
+      this.speed *= 0.1;
       console.log('collision detected');
     }
   }
@@ -223,18 +233,23 @@ export class SpaceshipGame extends Scene {
       cube_transform,
       this.materials.color.override({ color: hex_color('#222222') })
     );
-    this.shapes.cube_outline.draw(
-      context,
-      program_state,
-      cube_transform,
-      this.materials.basic,
-      'LINES'
-    );
-    if (cube_transform[2][3] >= -1) this.check_collision(cube_transform);
+    // this.shapes.cube_outline.draw(
+    //   context,
+    //   program_state,
+    //   cube_transform,
+    //   this.materials.basic,
+    //   'LINES'
+    // );
+    if (
+      cube_transform[2][3] >= -1 &&
+      cube_transform[2][3] <= 1 &&
+      !this.game_over
+    )
+      this.check_collision(cube_transform);
   }
 
   draw_cube_set(context, program_state, idx, dt) {
-    if (this.obstacles[idx].transform[2][3] >= 0) {
+    if (this.obstacles[idx].transform[2][3] >= -35) {
       this.obstacles[idx].transform = this.obstacles[idx].transform.times(
         Mat4.translation(0, 0, -1 * this.spawn_point)
       );
@@ -270,7 +285,7 @@ export class SpaceshipGame extends Scene {
     const t = program_state.animation_time / 1000,
       dt = program_state.animation_delta_time / 1000;
 
-    const light_position = vec4(0, 0, 37, 1);
+    const light_position = vec4(0, 0, 15, 1);
 
     program_state.lights = [
       new Light(light_position, color(1.0, 1.0, 1.0, 1.0), 100000 ** 2),
@@ -292,5 +307,11 @@ export class SpaceshipGame extends Scene {
       this.materials.basic,
       'LINES'
     );
+
+    if (!this.game_over) this.speed += dt * 3;
+    else {
+      if (this.speed > 0.5) this.speed -= this.speed * 0.95 * dt;
+      else this.speed = 0;
+    }
   }
 }
