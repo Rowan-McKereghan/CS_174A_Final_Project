@@ -108,6 +108,7 @@ export class SpaceshipGame extends Scene {
       ],
     ];
 
+    this.game_over = false;
     this.speed = 80;
     this.spawn_point = 400;
     this.obstacle_spacing = 100;
@@ -208,7 +209,9 @@ export class SpaceshipGame extends Scene {
       shipY + 1 >= cubeY - 1 &&
       shipY - 1 <= cubeY + 1
     ) {
-      this.speed = 0;
+      this.game_over = true;
+      console.log(this.speed);
+      this.speed *= 0.1;
       console.log('collision detected');
     }
   }
@@ -230,7 +233,12 @@ export class SpaceshipGame extends Scene {
       this.materials.basic,
       'LINES'
     );
-    if (cube_transform[2][3] >= -1) this.check_collision(cube_transform);
+    if (
+      cube_transform[2][3] >= -1 &&
+      cube_transform[2][3] <= 1 &&
+      !this.game_over
+    )
+      this.check_collision(cube_transform);
   }
 
   draw_cube_set(context, program_state, idx, dt) {
@@ -238,6 +246,7 @@ export class SpaceshipGame extends Scene {
       this.obstacles[idx].transform = this.obstacles[idx].transform.times(
         Mat4.translation(0, 0, -1 * this.spawn_point)
       );
+      this.obstacles[idx].pattern = {};
       this.obstacles[idx].pattern =
         this.obstacle_patterns[
           Math.floor(Math.random() * this.obstacle_patterns.length)
@@ -292,5 +301,11 @@ export class SpaceshipGame extends Scene {
       this.materials.basic,
       'LINES'
     );
+
+    if (!this.game_over) this.speed += dt * 3;
+    else {
+      if (this.speed > 0.5) this.speed -= this.speed * 0.95 * dt;
+      else this.speed = 0;
+    }
   }
 }
