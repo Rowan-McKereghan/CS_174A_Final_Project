@@ -135,6 +135,7 @@ export class SpaceshipGame extends Scene {
     this.ship_turn_speed = 3;
     this.ship_translation = Mat4.identity();
     this.ship_rotation = Mat4.identity();
+    this.ship_collision_velocity = {};
   }
 
   make_control_panel() {
@@ -244,6 +245,19 @@ export class SpaceshipGame extends Scene {
       console.log(this.speed);
       this.speed *= 0.1;
       console.log('collision detected');
+      this.ship_collision_velocity = {
+        translation: {
+          x: (shipX - cubeX) * (this.speed / 40),
+          y: (shipY - cubeY) * (this.speed / 40),
+          z: this.speed / 80,
+        },
+        rotation: {
+          angle: Math.PI * (this.speed / 500),
+          is_x: shipY > cubeY ? 1 : -1,
+          is_y: shipX < cubeX ? 1 : -1,
+          is_z: shipY > cubeY ? 1 : -1,
+        },
+      };
     }
   }
 
@@ -251,6 +265,14 @@ export class SpaceshipGame extends Scene {
     let cube_transform = this.obstacles[idx].transform.times(
       Mat4.translation(-8 + column * 4, 11 - row * 4, 50)
     );
+    if (
+      cube_transform[2][3] >= -1 &&
+      cube_transform[2][3] <= 1 &&
+      !this.game_over
+    ) {
+      this.check_collision(cube_transform);
+    }
+
     this.shapes.cube.draw(
       context,
       program_state,
@@ -264,16 +286,10 @@ export class SpaceshipGame extends Scene {
     //   this.materials.basic,
     //   'LINES'
     // );
-    if (
-      cube_transform[2][3] >= -1 &&
-      cube_transform[2][3] <= 1 &&
-      !this.game_over
-    )
-      this.check_collision(cube_transform);
   }
 
   draw_cube_set(context, program_state, idx, dt) {
-    if (this.obstacles[idx].transform[2][3] >= -35) {
+    if (this.obstacles[idx].transform[2][3] >= -35 && !this.game_over) {
       this.obstacles[idx].transform = this.obstacles[idx].transform.times(
         Mat4.translation(0, 0, -1 * this.spawn_point)
       );
@@ -388,8 +404,24 @@ export class SpaceshipGame extends Scene {
         this.ship_rotation = Mat4.identity();
       }
     } else {
-      if (this.speed > 0.5) this.speed -= this.speed * 0.95 * dt;
-      else this.speed = 0;
+      if (this.speed > 0.5) {
+        this.speed -= this.speed * 0.95 * dt;
+        this.ship_translation = this.ship_translation.times(
+          Mat4.translation(
+            this.ship_collision_velocity.translation.x * dt * this.speed,
+            this.ship_collision_velocity.translation.y * dt * this.speed,
+            this.ship_collision_velocity.translation.z * dt * this.speed
+          )
+        );
+        this.ship_rotation = this.ship_rotation.times(
+          Mat4.rotation(
+            this.ship_collision_velocity.rotation.angle * dt * this.speed,
+            this.ship_collision_velocity.rotation.is_x,
+            this.ship_collision_velocity.rotation.is_y,
+            this.ship_collision_velocity.rotation.is_z
+          )
+        );
+      } else this.speed = 0;
     }
   }
 }
