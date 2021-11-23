@@ -1,4 +1,5 @@
 import { defs, tiny } from './common.js';
+import { Shape_From_File } from './shape-from-file.js';
 
 const {
   Vector,
@@ -9,6 +10,7 @@ const {
   color,
   hex_color,
   Shader,
+  Texture,
   Matrix,
   Mat4,
   Light,
@@ -26,12 +28,23 @@ export class SpaceshipGame extends Scene {
       cube_outline: new defs.Cube_Outline(),
       testCube: new defs.Cube(),
       ship: new defs.Square_Pyramid_Outline(),
+      ship_model: new Shape_From_File('assets/spaceship.obj'),
     };
 
     this.materials = {
       basic: new Material(new defs.Basic_Shader()),
       color: new Material(new defs.Phong_Shader(), {
         color: hex_color('#000000'),
+      }),
+      transparent: new Material(new defs.Phong_Shader(), {
+        color: hex_color('#00000000'),
+      }),
+      metal: new Material(new defs.Textured_Phong(1), {
+        color: color(0.5, 0.5, 0.5, 1),
+        ambient: 0.3,
+        diffusivity: 0.5,
+        specularity: 0.5,
+        texture: new Texture('assets/metal.jpg'),
       }),
     };
 
@@ -247,8 +260,8 @@ export class SpaceshipGame extends Scene {
       console.log('collision detected');
       this.ship_collision_velocity = {
         translation: {
-          x: (shipX - cubeX) * (this.speed / 40),
-          y: (shipY - cubeY) * (this.speed / 40),
+          x: (shipX - cubeX) * (this.speed / 80),
+          y: (shipY - cubeY) * (this.speed / 80),
           z: this.speed / 80,
         },
         rotation: {
@@ -289,7 +302,7 @@ export class SpaceshipGame extends Scene {
   }
 
   draw_cube_set(context, program_state, idx, dt) {
-    if (this.obstacles[idx].transform[2][3] >= -35 && !this.game_over) {
+    if (this.obstacles[idx].transform[2][3] >= -35) {
       this.obstacles[idx].transform = this.obstacles[idx].transform.times(
         Mat4.translation(0, 0, -1 * this.spawn_point)
       );
@@ -333,7 +346,7 @@ export class SpaceshipGame extends Scene {
     const light_position = vec4(0, 0, 15, 1);
 
     program_state.lights = [
-      new Light(light_position, color(1.0, 1.0, 0.7, 0.8), 100 ** 2),
+      new Light(light_position, color(1.0, 1.0, 1.0, 0.8), 100 ** 2),
     ];
 
     for (let i = 0; i < 5; ++i) {
@@ -344,13 +357,20 @@ export class SpaceshipGame extends Scene {
     let ship_transform = Mat4.identity()
       .times(this.ship_translation)
       .times(this.ship_rotation)
-      .times(Mat4.rotation(Math.PI / 2, 1, 0, 0));
+      .times(Mat4.rotation(Math.PI / 2, 0, 1, 0));
+
     this.shapes.ship.draw(
       context,
       program_state,
       ship_transform,
-      this.materials.basic,
-      'LINES'
+      this.materials.transparent
+    );
+    this.shapes.ship_model.draw(
+      context,
+      program_state,
+      ship_transform,
+      // .times(Mat4.rotation(Math.PI, 0, 1, 0)),
+      this.materials.metal
     );
 
     if (!this.game_over) {
@@ -361,7 +381,7 @@ export class SpaceshipGame extends Scene {
             Mat4.translation(0, this.ship_speed * dt, 0)
           );
           this.ship_rotation = this.ship_rotation.times(
-            Mat4.rotation((Math.PI / -4) * this.ship_turn_speed * dt, 1, 0, 0)
+            Mat4.rotation((Math.PI / 4) * this.ship_turn_speed * dt, 1, 0, 0)
           );
         }
       }
@@ -371,7 +391,7 @@ export class SpaceshipGame extends Scene {
             Mat4.translation(0, this.ship_speed * -dt, 0)
           );
           this.ship_rotation = this.ship_rotation.times(
-            Mat4.rotation((Math.PI / 4) * this.ship_turn_speed * dt, 1, 0, 0)
+            Mat4.rotation((Math.PI / -4) * this.ship_turn_speed * dt, 1, 0, 0)
           );
         }
       }
@@ -381,7 +401,7 @@ export class SpaceshipGame extends Scene {
             Mat4.translation(this.ship_speed * -dt, 0, 0)
           );
           this.ship_rotation = this.ship_rotation.times(
-            Mat4.rotation((Math.PI / -4) * this.ship_turn_speed * dt, 0, 1, -1)
+            Mat4.rotation((Math.PI / 4) * this.ship_turn_speed * dt, 0, 1, 0)
           );
         }
       }
@@ -391,7 +411,7 @@ export class SpaceshipGame extends Scene {
             Mat4.translation(this.ship_speed * dt, 0, 0)
           );
           this.ship_rotation = this.ship_rotation.times(
-            Mat4.rotation((Math.PI / 4) * this.ship_turn_speed * dt, 0, 1, -1)
+            Mat4.rotation((Math.PI / -4) * this.ship_turn_speed * dt, 0, 1, 0)
           );
         }
       }
