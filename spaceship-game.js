@@ -147,7 +147,7 @@ export class SpaceshipGame extends Scene {
     this.ship_speed = 30;
     this.ship_turn_speed = 3;
     this.ship_translation = Mat4.identity();
-    this.ship_rotation = Mat4.identity();
+    this.ship_rotation = { horizontal: 0, vertical: 0, tilt: 0 };
     this.ship_collision_velocity = {};
   }
 
@@ -283,7 +283,7 @@ export class SpaceshipGame extends Scene {
       cube_transform[2][3] <= 1 &&
       !this.game_over
     ) {
-      this.check_collision(cube_transform);
+      // this.check_collision(cube_transform);
     }
 
     this.shapes.cube.draw(
@@ -356,7 +356,9 @@ export class SpaceshipGame extends Scene {
     /* SETUP SHIP */
     let ship_transform = Mat4.identity()
       .times(this.ship_translation)
-      .times(this.ship_rotation)
+      .times(Mat4.rotation(this.ship_rotation.horizontal, 0, 1, 0))
+      .times(Mat4.rotation(this.ship_rotation.vertical, 1, 0, 0))
+      .times(Mat4.rotation(this.ship_rotation.tilt, 0, 0, 1))
       .times(Mat4.rotation(Math.PI / 2, 0, 1, 0));
 
     this.shapes.ship.draw(
@@ -374,55 +376,102 @@ export class SpaceshipGame extends Scene {
     );
 
     if (!this.game_over) {
-      this.speed += dt * 3;
+      this.speed += dt * 2;
+      // if (this.w_pressed) {
+      //   if (this.ship_translation[1][3] < 12) {
+      //     this.ship_translation = this.ship_translation.times(
+      //       Mat4.translation(0, this.ship_speed * dt, 0)
+      //     );
+      //     this.ship_rotation = this.ship_rotation.times(
+      //       Mat4.rotation((Math.PI / 4) * this.ship_turn_speed * dt, 1, 0, 0)
+      //     );
+      //   }
+      // }
+      // if (this.s_pressed) {
+      //   if (this.ship_translation[1][3] > -6.5) {
+      //     this.ship_translation = this.ship_translation.times(
+      //       Mat4.translation(0, this.ship_speed * -dt, 0)
+      //     );
+      //     this.ship_rotation = this.ship_rotation.times(
+      //       Mat4.rotation((Math.PI / -4) * this.ship_turn_speed * dt, 1, 0, 0)
+      //     );
+      //   }
+      // }
+      // if (this.a_pressed) {
+      //   if (this.ship_translation[0][3] > -8.5) {
+      //     this.ship_translation = this.ship_translation.times(
+      //       Mat4.translation(this.ship_speed * -dt, 0, 0)
+      //     );
+      //     this.ship_rotation = this.ship_rotation.times(
+      //       Mat4.rotation((Math.PI / 4) * this.ship_turn_speed * dt, 0, 1, 0)
+      //     );
+      //   }
+      // }
+      // if (this.d_pressed) {
+      //   if (this.ship_translation[0][3] < 8.5) {
+      //     this.ship_translation = this.ship_translation.times(
+      //       Mat4.translation(this.ship_speed * dt, 0, 0)
+      //     );
+      //     this.ship_rotation = this.ship_rotation.times(
+      //       Mat4.rotation((Math.PI / -4) * this.ship_turn_speed * dt, 0, 1, 0)
+      //     );
+      //   }
+      // }
+      // if (
+      //   !this.w_pressed &&
+      //   !this.s_pressed &&
+      //   !this.a_pressed &&
+      //   !this.d_pressed
+      // ) {
+      //   this.ship_rotation = Mat4.identity();
+      // }
       if (this.w_pressed) {
-        if (this.ship_translation[1][3] < 12) {
-          this.ship_translation = this.ship_translation.times(
-            Mat4.translation(0, this.ship_speed * dt, 0)
-          );
-          this.ship_rotation = this.ship_rotation.times(
-            Mat4.rotation((Math.PI / 4) * this.ship_turn_speed * dt, 1, 0, 0)
-          );
-        }
+        if (this.ship_rotation.vertical < Math.PI / 4)
+          this.ship_rotation.vertical +=
+            (Math.PI / 4) * this.ship_turn_speed * dt;
       }
       if (this.s_pressed) {
-        if (this.ship_translation[1][3] > -6.5) {
-          this.ship_translation = this.ship_translation.times(
-            Mat4.translation(0, this.ship_speed * -dt, 0)
-          );
-          this.ship_rotation = this.ship_rotation.times(
-            Mat4.rotation((Math.PI / -4) * this.ship_turn_speed * dt, 1, 0, 0)
-          );
-        }
+        if (this.ship_rotation.vertical > -Math.PI / 4)
+          this.ship_rotation.vertical -=
+            (Math.PI / 4) * this.ship_turn_speed * dt;
+      }
+      if (!this.w_pressed && !this.s_pressed) {
+        if (Math.abs(this.ship_rotation.vertical) < 0.01)
+          this.ship_rotation.vertical = 0;
+        else
+          this.ship_rotation.vertical -= this.ship_rotation.vertical * 5 * dt;
       }
       if (this.a_pressed) {
-        if (this.ship_translation[0][3] > -8.5) {
-          this.ship_translation = this.ship_translation.times(
-            Mat4.translation(this.ship_speed * -dt, 0, 0)
-          );
-          this.ship_rotation = this.ship_rotation.times(
-            Mat4.rotation((Math.PI / 4) * this.ship_turn_speed * dt, 0, 1, 0)
-          );
+        if (this.ship_rotation.horizontal < Math.PI / 4) {
+          this.ship_rotation.horizontal +=
+            (Math.PI / 4) * this.ship_turn_speed * dt;
+          this.ship_rotation.tilt += (Math.PI / 12) * this.ship_turn_speed * dt;
         }
       }
       if (this.d_pressed) {
-        if (this.ship_translation[0][3] < 8.5) {
-          this.ship_translation = this.ship_translation.times(
-            Mat4.translation(this.ship_speed * dt, 0, 0)
-          );
-          this.ship_rotation = this.ship_rotation.times(
-            Mat4.rotation((Math.PI / -4) * this.ship_turn_speed * dt, 0, 1, 0)
-          );
+        if (this.ship_rotation.horizontal > -Math.PI / 4) {
+          this.ship_rotation.horizontal -=
+            (Math.PI / 4) * this.ship_turn_speed * dt;
+          this.ship_rotation.tilt -= (Math.PI / 12) * this.ship_turn_speed * dt;
         }
       }
-      if (
-        !this.w_pressed &&
-        !this.s_pressed &&
-        !this.a_pressed &&
-        !this.d_pressed
-      ) {
-        this.ship_rotation = Mat4.identity();
+      if (!this.a_pressed && !this.d_pressed) {
+        if (Math.abs(this.ship_rotation.horizontal) < 0.01)
+          this.ship_rotation.horizontal = 0;
+        else
+          this.ship_rotation.horizontal -=
+            this.ship_rotation.horizontal * 5 * dt;
+        if (Math.abs(this.ship_rotation.tilt) < 0.01)
+          this.ship_rotation.tilt = 0;
+        else this.ship_rotation.tilt -= this.ship_rotation.tilt * 4 * dt;
       }
+      this.ship_translation = this.ship_translation.times(
+        Mat4.translation(
+          -this.ship_speed * Math.sin(this.ship_rotation.horizontal) * dt,
+          this.ship_speed * Math.sin(this.ship_rotation.vertical) * dt,
+          0
+        )
+      );
     } else {
       if (this.speed > 0.5) {
         this.speed -= this.speed * 0.95 * dt;
