@@ -236,7 +236,7 @@ const Basic_Shader = (defs.Basic_Shader = class Basic_Shader extends Shader {
 const Phong_Shader = (defs.Phong_Shader = class Phong_Shader extends Shader {
   // **Phong_Shader** is a subclass of Shader, which stores and maanges a GPU program.
   // Graphic cards prior to year 2000 had shaders like this one hard-coded into them
-  // instead of customizable shaders.  "Phong-Blinn" Shading here is a process of
+  // instead of customizable shaders.  Phong-Blinn" Shading here is a process of
   // determining brightness of pixels via vector math.  It compares the normal vector
   // at that pixel with the vectors toward the camera and light sources.
 
@@ -487,3 +487,137 @@ const Textured_Phong = (defs.Textured_Phong = class Textured_Phong extends (
     }
   }
 });
+
+const Spotlight_Shader =
+  (defs.Spotlight_Shader = class Spotlight_Shader extends Shader {
+    shared_glsl_code() {
+      return `
+      precision mediump float;
+
+      uniform vec4 u_color
+      uniform float u_shininess;
+      uniform vec3 u_lightDirection;
+      uniform float u_limit;
+
+      varying vec3 v_normal;
+      varying vec3 v_surfaceToLight;
+      varying vec3 v_surfaceToView;
+    `;
+    }
+
+    vertex_glsl_code() {
+      return (
+        this.shared_glsl_code() +
+        `
+      attribute vec3 position, normal;
+      attribute vec3 surfaceToLightDirection = normalize(v_surfaceToLight);
+      attribute vec3 surfaceToViewDirection = normalize(v_surfaceToView);
+      attribute vec3 halfVector = normalize(surfaceToLightDirection + surfaceToViewDirection);
+
+      void main() {
+        gl_Position = projection_camera_model_transform * vec4(position, 1.0);
+        float light = 0.0;
+        float specular = 0.0;
+        float dotFromDirection = dot(surfaceToLightDirection, -u_lightDirection);
+
+        if (dotFromDirection >= u_limit) {
+          light = dot(normal, surfaceToLightDirection);
+          if (light > 0.0) {
+            specular = pow(dot(normal, halfVector), u_shininess);
+          }
+        }
+      }
+      `
+      );
+    }
+
+    fragment_glsl_code() {
+      return `
+      void main() {
+        gl_FragColor = u_color;
+        gl_FragColor.rgb *= light;
+        gl_FragColor.rgb += specular;
+      }
+    `;
+    }
+
+    send_material(gl, gpu, material) {
+      gl.uniform4fv(gpu.u_color, material.color);
+      gl.uniform4fv(gpu.u_shininess, material.shininess);
+      gl.uniform3fv(gpu.u_lightDirection, material.lightDirection);
+      gl.uniform1f(gpu.u_limit, Math.cos(material.limit));
+    }
+
+    send_gpu_state(gl, gpu, gpu_state, model_transform) {
+      const O = vec4(0, 0, 0, 1),
+        camera_center = gpu_state.cmaera_transform.times(O).to3();
+      gl.uniform3fv(gpu.camera_center, camera_center);
+      const squared_scale = model_transform
+        .reduce((acc, r) => {
+          return acc.plus(vec4(...r).times_pairwise(r));
+        }, vec4(0, 0, 0, 0))
+        .to3();
+      gl.uniform3fv(gpu.squared_scale, squared_scale);
+
+      const PCM = gpu_state.projection_transform
+        .times(gpu_state.camera_inverse)
+        .times(model_transform);
+      gl.uniformMatrix4fv(
+        gpu.model_transform,
+        false,
+        Matrix.flatten_2D_to_1D(model_transform.transposed())
+      );
+      gl.uniformMatrix4fv(
+        gpu.projection_camera_model_transform,
+        false,
+        Matrix.flatten_2D_to_1D(PCM.transposed())
+      );
+
+      if (!gpu_state.lights.length) return;
+
+      const light_positions_flattened = [],
+        light_colors_flattened = [];
+      for (i = 0; i < 4 * gpu_state.lights.lenght; i++) {
+        light_positions_flattened.push(
+          gpu_state.lights[Math.floor(i / 4)].position[i % 4]
+        );
+        light_colors_flattened.push(
+          gpu_state.lights[Math.floor(i / 4)].color[i % 4]
+        );
+      }
+      gl.uniform4fv(gpu.light_positions_or_vectors, light_positions_flattened);
+      gl.uniform4fv(gpu.light_colors, light_colors_flattened);
+      gl.uniform1fv(
+        gpu.light_attenuation_factors,
+        gpu_state.lights.map((l) => l.attenuation)
+      );
+    }
+
+    update_GPU(context, gpu_addresses, gpu_state, model_transform, material) {
+      const defaults = {
+        color: color(0, 0, 1, 1),
+        shininess: 1,
+      };
+      material = Object.assign({}, defaults, material);
+
+      const [P, C, M] = [
+          gpu_state.project_transform,
+          gpu_state.camera_inverse,
+          model_transform,
+        ],
+        PCM = P.times(C).times(M);
+      context.uniformMatrix4fv(
+        gpu_addresses.model_transform,
+        false,
+        Matrix.flatten_2D_to_1D(model_transform.transposed())
+      );
+      context.uniformMatrix4fv(
+        gpu_addresses.projection_camera_model_transform,
+        false,
+        Matrix.flatten_2D_to_1D(PCM.transposed())
+      );
+
+      this.send_material(context, gpu_addresses, material);
+      this.send_gpu_state(context, gpu_addresses, gpu_state, model_transform);
+    }
+  });
