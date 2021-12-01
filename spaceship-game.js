@@ -46,6 +46,10 @@ export class SpaceshipGame extends Scene {
         specularity: 0.5,
         texture: new Texture('assets/metal.jpg'),
       }),
+      spotlight: new Material(new defs.Spotlight_Shader(), {
+        color: hex_color('#000000'),
+        ambient: 0.05,
+      }),
     };
 
     this.initial_camera_location = Mat4.look_at(
@@ -55,6 +59,13 @@ export class SpaceshipGame extends Scene {
     );
 
     this.obstacle_patterns = [
+      // [
+      //   [1, 1, 1, 1, 1],
+      //   [1, 1, 1, 1, 1],
+      //   [1, 1, 1, 1, 1],
+      //   [1, 1, 1, 1, 1],
+      //   [1, 1, 1, 1, 1],
+      // ],
       [
         [1, 0, 0, 0, 0],
         [1, 0, 0, 0, 0],
@@ -123,6 +134,7 @@ export class SpaceshipGame extends Scene {
     this.game_over = false;
     this.speed = 80;
     this.spawn_point = 400;
+    // this.spawn_point = 30;
     this.obstacle_spacing = 100;
     this.obstacles = [];
     for (let i = 0; i < 100; ++i) {
@@ -251,7 +263,7 @@ export class SpaceshipGame extends Scene {
       context,
       program_state,
       cube_transform,
-      this.materials.color.override({ color: hex_color('#222222') })
+      this.materials.spotlight.override({ color: hex_color('#ffffff') })
     );
     // this.shapes.cube_outline.draw(
     //   context,
@@ -306,10 +318,23 @@ export class SpaceshipGame extends Scene {
     const t = program_state.animation_time / 1000,
       dt = program_state.animation_delta_time / 1000;
 
-    const light_position = vec4(0, 0, 15, 1);
-
     program_state.lights = [
-      new Light(light_position, color(1.0, 1.0, 1.0, 0.8), 100 ** 2),
+      new Light(
+        vec4(
+          this.ship_position.x,
+          this.ship_position.y,
+          this.ship_position.z,
+          1
+        ),
+        vec3(
+          -Math.sin(this.ship_rotation.horizontal),
+          Math.sin(this.ship_rotation.vertical),
+          -5
+        ),
+        color(1.0, 1.0, 1.0, 1.0),
+        2500,
+        Math.PI / 3.155
+      ),
     ];
 
     for (let i = 0; i < 5; ++i) {
