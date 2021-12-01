@@ -25,6 +25,7 @@ export class SpaceshipGame extends Scene {
 
     this.shapes = {
       square: new defs.Square(),
+      text: new defs.Text_Line(30),
       cube: new defs.Cube(),
       cube_outline: new defs.Cube_Outline(),
       testCube: new defs.Cube(),
@@ -171,7 +172,9 @@ export class SpaceshipGame extends Scene {
     this.ship_collision_velocity = {};
 
     this.text_position = { x: 0, y: 8, z: 25 };
-    this.text_scale = { x: 6, y: 3, z: 0.1 };
+    this.text_scale = { x: 0.75, y: 0.75, z: 1 };
+
+    this.score = 0;
   }
 
   make_control_panel() {
@@ -293,6 +296,7 @@ export class SpaceshipGame extends Scene {
         this.obstacle_patterns[
           Math.floor(Math.random() * this.obstacle_patterns.length)
         ];
+      this.score += 1;
     }
     this.obstacles[idx].transform = this.obstacles[idx].transform.times(
       Mat4.translation(0, 0, this.speed * dt)
@@ -344,23 +348,33 @@ export class SpaceshipGame extends Scene {
       ),
     ];
 
-    this.shapes.square.draw(
+    // this.shapes.square.draw(
+    //   context,
+    //   program_state,
+    //   Mat4.translation(
+    //     this.text_position.x,
+    //     this.text_position.y,
+    //     this.text_position.z
+    //   ).times(
+    //     Mat4.scale(this.text_scale.x, this.text_scale.y, this.text_scale.z)
+    //   ),
+    //   this.materials.text_image
+    // );
+    this.shapes.text.set_string(this.score.toString(), context.context);
+    this.shapes.text.draw(
       context,
-      // {
-      //   ...program_state,
-      //   projection_transform: Mat4.identity().times(
-      //     Mat4.translation(0, 0, -10)
-      //   ),
-      // },
       program_state,
       Mat4.translation(
         this.text_position.x,
         this.text_position.y,
         this.text_position.z
-      ).times(
-        Mat4.scale(this.text_scale.x, this.text_scale.y, this.text_scale.z)
-      ),
-      // .times(Mat4.inverse(program_state.projection_transform)),
+      )
+        .times(
+          Mat4.scale(this.text_scale.x, this.text_scale.y, this.text_scale.z)
+        )
+        .times(
+          Mat4.translation((this.score.toString().length - 1) * -0.75, 0, 0)
+        ),
       this.materials.text_image
     );
 
