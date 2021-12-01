@@ -24,6 +24,7 @@ export class SpaceshipGame extends Scene {
     super();
 
     this.shapes = {
+      square: new defs.Square(),
       cube: new defs.Cube(),
       cube_outline: new defs.Cube_Outline(),
       testCube: new defs.Cube(),
@@ -49,6 +50,12 @@ export class SpaceshipGame extends Scene {
       spotlight: new Material(new defs.Spotlight_Shader(), {
         color: hex_color('#000000'),
         ambient: 0.1,
+      }),
+      text_image: new Material(new defs.Textured_Phong(), {
+        ambient: 1,
+        diffusivity: 0,
+        speculatrity: 0,
+        texture: new Texture('assets/text.png'),
       }),
     };
 
@@ -162,6 +169,9 @@ export class SpaceshipGame extends Scene {
     this.ship_position = { x: 0, y: 0, z: 0 };
     this.ship_rotation = { horizontal: 0, vertical: 0, tilt: 0 };
     this.ship_collision_velocity = {};
+
+    this.text_position = { x: 0, y: 8, z: 25 };
+    this.text_scale = { x: 6, y: 3, z: 0.1 };
   }
 
   make_control_panel() {
@@ -303,11 +313,8 @@ export class SpaceshipGame extends Scene {
       )
       // )
     );
-    program_state.set_camera(
-      this.initial_camera_location.map((x, i) =>
-        Vector.from(camera_inverse[i]).mix(x, 0.7)
-      )
-    );
+
+    program_state.set_camera(this.initial_camera_location);
     program_state.projection_transform = Mat4.perspective(
       Math.PI / 4,
       context.width / context.height,
@@ -336,6 +343,32 @@ export class SpaceshipGame extends Scene {
         Math.PI / 3.155
       ),
     ];
+
+    this.shapes.square.draw(
+      context,
+      // {
+      //   ...program_state,
+      //   projection_transform: Mat4.identity().times(
+      //     Mat4.translation(0, 0, -10)
+      //   ),
+      // },
+      program_state,
+      Mat4.translation(
+        this.text_position.x,
+        this.text_position.y,
+        this.text_position.z
+      ).times(
+        Mat4.scale(this.text_scale.x, this.text_scale.y, this.text_scale.z)
+      ),
+      // .times(Mat4.inverse(program_state.projection_transform)),
+      this.materials.text_image
+    );
+
+    program_state.set_camera(
+      this.initial_camera_location.map((x, i) =>
+        Vector.from(camera_inverse[i]).mix(x, 0.7)
+      )
+    );
 
     for (let i = 0; i < 5; ++i) {
       this.draw_cube_set(context, program_state, i, dt);
