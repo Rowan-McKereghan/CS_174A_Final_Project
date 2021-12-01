@@ -658,6 +658,7 @@ const Spotlight_Shader =
                         vec3 L = normalize( surface_to_light_vector );
                         vec3 light_direction_vector = normalize( -light_rotations[i]);
                         float angle = dot(L, light_direction_vector); 
+                        float penumbra = 0.0045;
 
                         if (angle >= limit_angles[i]) {
                           float distance_to_light = length( surface_to_light_vector );
@@ -669,6 +670,18 @@ const Spotlight_Shader =
                           vec3 light_contribution = shape_color.xyz * light_colors[i].xyz * diffusivity * diffuse
                                                                     + light_colors[i].xyz * specularity * specular;
                           result += attenuation * light_contribution;
+                        }
+                        else if (angle + penumbra >= limit_angles[i]) {
+                          float penumbra_factor = (limit_angles[i] - angle) / penumbra;
+                          float distance_to_light = length( surface_to_light_vector );
+                          vec3 H = normalize( L + E );
+                          float diffuse  =      max( dot( N, L ), 0.0 );
+                          float specular = pow( max( dot( N, H ), 0.0 ), smoothness );
+                          float attenuation = 1.0 / (1.0 + light_attenuation_factors[i] * distance_to_light * distance_to_light );
+                        
+                          vec3 light_contribution = shape_color.xyz * light_colors[i].xyz * diffusivity * diffuse
+                                                                    + light_colors[i].xyz * specularity * specular;
+                          result += (attenuation * light_contribution) * (1.0 - penumbra_factor);
                         }
                       }
                     return result;
