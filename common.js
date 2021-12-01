@@ -530,10 +530,10 @@ const Textured_Phong = (defs.Textured_Phong = class Textured_Phong extends (
       material
     );
 
-    // context.uniform1f(
-    //   gpu_addresses.animation_time,
-    //   gpu_state.animation_time / 1000
-    // );
+    context.uniform1f(
+      gpu_addresses.animation_time,
+      gpu_state.animation_time / 1000
+    );
     if (material.texture && material.texture.ready) {
       // Select texture unit 0 for the fragment shader Sampler2D uniform called "texture":
       context.uniform1i(gpu_addresses.texture, 0);
@@ -554,16 +554,15 @@ const Texture_Zoom = (defs.Texture_Zoom = class Texture_Zoom extends (
         uniform sampler2D texture;
         uniform float animation_time;
         void main() {
-          float x_coord = f_tex_coord.x - 0.5;
-          float y_coord = f_tex_coord.y - 0.5;
-          float new_x = x_coord + x_coord * (animation_time);
-          float new_y = y_coord + y_coord * (animation_time);
+          float x_coord = f_tex_coord.x;
+          float y_coord = f_tex_coord.y;
+          // float new_x = x_coord + x_coord * (animation_time) + 0.5;
+          // float new_y = y_coord + y_coord * (animation_time) + 0.5;
+          float new_x = x_coord;
+          float new_y = mod(y_coord + animation_time / 5.0, 10.0);
 
           vec2 new_coord = vec2(new_x, new_y);
           vec4 tex_color = texture2D(texture, new_coord);
-
-          float u = mod(new_coord.x, 1.0);
-          float v = mod(new_coord.y, 1.0);
 
           if (tex_color.w < .01) discard;
           gl_FragColor = vec4((tex_color.xyz + shape_color.xyz) * ambient, shape_color.w * tex_color.w);
