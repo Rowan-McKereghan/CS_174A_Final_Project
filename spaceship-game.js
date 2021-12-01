@@ -48,7 +48,7 @@ export class SpaceshipGame extends Scene {
       }),
       spotlight: new Material(new defs.Spotlight_Shader(), {
         color: hex_color('#000000'),
-        ambient: 0.05,
+        ambient: 0.1,
       }),
     };
 
