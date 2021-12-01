@@ -25,6 +25,7 @@ export class SpaceshipGame extends Scene {
 
     this.shapes = {
       square: new defs.Square(),
+      skybox: new defs.Square(),
       text: new defs.Text_Line(30),
       cube: new defs.Cube(),
       cube_outline: new defs.Cube_Outline(),
@@ -32,6 +33,10 @@ export class SpaceshipGame extends Scene {
       ship: new defs.Square_Pyramid_Outline(),
       ship_model: new Shape_From_File('assets/spaceship.obj'),
     };
+    this.shapes.skybox.arrays.texture_coord.forEach((v) => {
+      v[0] *= 5;
+      v[1] *= 5;
+    });
 
     this.materials = {
       basic: new Material(new defs.Basic_Shader()),
@@ -57,6 +62,20 @@ export class SpaceshipGame extends Scene {
         diffusivity: 0,
         speculatrity: 0,
         texture: new Texture('assets/text.png'),
+      }),
+      //uncomment for stationary stars
+      // space_skybox: new Material(new defs.Textured_Phong(), {
+      //   ambient: 0.5,
+      //   diffusivity: 0,
+      //   specularity: 0,
+      //   texture: new Texture('assets/space.jpg'),
+      // }),
+      //uncomment for falling stars
+      space_skybox: new Material(new defs.Texture_Zoom(), {
+        ambient: 0.5,
+        diffusivity: 0,
+        specularity: 0,
+        texture: new Texture('assets/space.jpg'),
       }),
     };
 
@@ -414,6 +433,13 @@ export class SpaceshipGame extends Scene {
       ship_transform,
       // .times(Mat4.rotation(Math.PI, 0, 1, 0)),
       this.materials.metal
+    );
+
+    this.shapes.skybox.draw(
+      context,
+      program_state,
+      Mat4.translation(0, 0, -this.spawn_point).times(Mat4.scale(400, 400, 1)),
+      this.materials.space_skybox
     );
 
     if (!this.game_over) {
