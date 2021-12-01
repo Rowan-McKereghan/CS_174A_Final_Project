@@ -506,6 +506,7 @@ const Textured_Phong = (defs.Textured_Phong = class Textured_Phong extends (
       `
                 varying vec2 f_tex_coord;
                 uniform sampler2D texture;
+                uniform float animation_time;
         
                 void main(){
                     // Sample the texture image in the correct place:
@@ -529,12 +530,47 @@ const Textured_Phong = (defs.Textured_Phong = class Textured_Phong extends (
       material
     );
 
+    // context.uniform1f(
+    //   gpu_addresses.animation_time,
+    //   gpu_state.animation_time / 1000
+    // );
     if (material.texture && material.texture.ready) {
       // Select texture unit 0 for the fragment shader Sampler2D uniform called "texture":
       context.uniform1i(gpu_addresses.texture, 0);
       // For this draw, use the texture image from correct the GPU buffer:
       material.texture.activate(context);
     }
+  }
+});
+
+const Texture_Zoom = (defs.Texture_Zoom = class Texture_Zoom extends (
+  Textured_Phong
+) {
+  fragment_glsl_code() {
+    return (
+      this.shared_glsl_code() +
+      `
+        varying vec2 f_tex_coord;
+        uniform sampler2D texture;
+        uniform float animation_time;
+        void main() {
+          float x_coord = f_tex_coord.x - 0.5;
+          float y_coord = f_tex_coord.y - 0.5;
+          float new_x = x_coord + x_coord * (animation_time);
+          float new_y = y_coord + y_coord * (animation_time);
+
+          vec2 new_coord = vec2(new_x, new_y);
+          vec4 tex_color = texture2D(texture, new_coord);
+
+          float u = mod(new_coord.x, 1.0);
+          float v = mod(new_coord.y, 1.0);
+
+          if (tex_color.w < .01) discard;
+          gl_FragColor = vec4((tex_color.xyz + shape_color.xyz) * ambient, shape_color.w * tex_color.w);
+          gl_FragColor.xyz += phong_model_lights(normalize(N), vertex_worldspace);
+        }
+      `
+    );
   }
 });
 
