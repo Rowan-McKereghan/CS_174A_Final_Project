@@ -63,6 +63,14 @@ export class SpaceshipGame extends Scene {
         speculatrity: 0,
         texture: new Texture('assets/text.png'),
       }),
+      //uncomment for stationary stars
+      // space_skybox: new Material(new defs.Textured_Phong(), {
+      //   ambient: 0.5,
+      //   diffusivity: 0,
+      //   specularity: 0,
+      //   texture: new Texture('assets/space.jpg'),
+      // }),
+      //uncomment for falling stars
       space_skybox: new Material(new defs.Texture_Zoom(), {
         ambient: 0.5,
         diffusivity: 0,

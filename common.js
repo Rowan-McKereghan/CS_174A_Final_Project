@@ -556,8 +556,6 @@ const Texture_Zoom = (defs.Texture_Zoom = class Texture_Zoom extends (
         void main() {
           float x_coord = f_tex_coord.x;
           float y_coord = f_tex_coord.y;
-          // float new_x = x_coord + x_coord * (animation_time) + 0.5;
-          // float new_y = y_coord + y_coord * (animation_time) + 0.5;
           float new_x = x_coord;
           float new_y = mod(y_coord + animation_time / 5.0, 10.0);
 
