@@ -183,6 +183,8 @@ export class SpaceshipGame extends Scene {
     for (let i = 0; i < 3; i++) {
       this.boards[i].draw(context, program_state, this.game_speed, dt); // draw the board 
 
+      if (this.game_over) continue; // skip the collision check if the game is over
+
       // collision will hold an obstacle that collided with the ship 
       let collision = this.boards[i].check_collision(this.ship_position);
       
@@ -273,8 +275,7 @@ export class SpaceshipGame extends Scene {
       this.ship_position.y = Math.max(this.ship_position.y, -6.5);
       this.ship_position.y = Math.min(this.ship_position.y, 12.0);
     } else {
-      this.game_speed = 8;
-      // fracture the piece
+      (this.game_speed > 1) ? this.game_speed *= .95 : this.game_speed = 0;
     }
   }
 }

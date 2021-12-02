@@ -118,7 +118,7 @@ export class Board {
     if (Math.abs(this.z) > 1) return null;
 
     for (let i = 0; i < 25; i++) {
-      if (this.patterns[this.pattern_index][i] == 1 && this.obstacles[i].has_collided(ship)) return this.obstacles[i];
+      if (this.patterns[this.pattern_index][i] == 1 && !this.obstacles[i].is_fractured && this.obstacles[i].has_collided(ship)) return this.obstacles[i];
     }
 
     return null;
