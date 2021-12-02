@@ -51,6 +51,55 @@ const Square = (defs.Square = class Square extends Shape {
   }
 });
 
+const Text_Line = (defs.Text_Line = class Text_Line extends Shape {
+  constructor(max_size) {
+    super('position', 'normal', 'texture_coord');
+    this.max_size = max_size;
+    var object_transform = Mat4.identity();
+    for (var i = 0; i < max_size; i++) {
+      // Each quad is a separate Square instance:
+      defs.Square.insert_transformed_copy_into(this, [], object_transform);
+      object_transform.post_multiply(Mat4.translation(1.5, 0, 0));
+    }
+  }
+
+  set_string(line, context) {
+    // set_string():  Call this to overwrite the texture coordinates buffer with new
+    // values per quad, which enclose each of the string's characters.
+    this.arrays.texture_coord = [];
+    for (var i = 0; i < this.max_size; i++) {
+      var row = Math.floor(
+          (i < line.length ? line.charCodeAt(i) : ' '.charCodeAt()) / 16
+        ),
+        col = Math.floor(
+          (i < line.length ? line.charCodeAt(i) : ' '.charCodeAt()) % 16
+        );
+
+      var skip = 3,
+        size = 32,
+        sizefloor = size - skip;
+      var dim = size * 16,
+        left = (col * size + skip) / dim,
+        top = (row * size + skip) / dim,
+        right = (col * size + sizefloor) / dim,
+        bottom = (row * size + sizefloor + 5) / dim;
+
+      this.arrays.texture_coord.push(
+        ...Vector.cast(
+          [left, 1 - bottom],
+          [right, 1 - bottom],
+          [left, 1 - top],
+          [right, 1 - top]
+        )
+      );
+    }
+    if (!this.existing) {
+      this.copy_onto_graphics_card(context);
+      this.existing = true;
+    } else this.copy_onto_graphics_card(context, ['texture_coord'], false);
+  }
+});
+
 const Cube = (defs.Cube = class Cube extends Shape {
   // **Cube** A closed 3D shape, and the first example of a compound shape (a Shape constructed
   // out of other Shapes).  A cube inserts six Square strips into its own arrays, using six
@@ -457,6 +506,7 @@ const Textured_Phong = (defs.Textured_Phong = class Textured_Phong extends (
       `
                 varying vec2 f_tex_coord;
                 uniform sampler2D texture;
+                uniform float animation_time;
         
                 void main(){
                     // Sample the texture image in the correct place:
@@ -480,6 +530,10 @@ const Textured_Phong = (defs.Textured_Phong = class Textured_Phong extends (
       material
     );
 
+    context.uniform1f(
+      gpu_addresses.animation_time,
+      gpu_state.animation_time / 1000
+    );
     if (material.texture && material.texture.ready) {
       // Select texture unit 0 for the fragment shader Sampler2D uniform called "texture":
       context.uniform1i(gpu_addresses.texture, 0);
@@ -489,142 +543,33 @@ const Textured_Phong = (defs.Textured_Phong = class Textured_Phong extends (
   }
 });
 
-// const Spotlight_Shader =
-//   (defs.Spotlight_Shader = class Spotlight_Shader extends Shader {
-//     shared_glsl_code() {
-//       return `
-//       precision mediump float;
+const Texture_Zoom = (defs.Texture_Zoom = class Texture_Zoom extends (
+  Textured_Phong
+) {
+  fragment_glsl_code() {
+    return (
+      this.shared_glsl_code() +
+      `
+        varying vec2 f_tex_coord;
+        uniform sampler2D texture;
+        uniform float animation_time;
+        void main() {
+          float x_coord = f_tex_coord.x;
+          float y_coord = f_tex_coord.y;
+          float new_x = x_coord;
+          float new_y = mod(y_coord + animation_time / 5.0, 10.0);
 
-//       uniform vec4 u_color;
-//       uniform float u_shininess;
-//       uniform vec3 u_lightDirection;
-//       uniform float u_limit;
+          vec2 new_coord = vec2(new_x, new_y);
+          vec4 tex_color = texture2D(texture, new_coord);
 
-//       varying vec3 v_normal;
-//       varying vec3 v_surfaceToLight;
-//       varying vec3 v_surfaceToView;
-//     `;
-//     }
-
-//     vertex_glsl_code() {
-//       return (
-//         this.shared_glsl_code() +
-//         `
-//       attribute vec3 position, normal;
-//       attribute vec3 surfaceToLightDirection;
-//       attribute vec3 surfaceToViewDirection;
-//       attribute vec3 halfVector;
-
-//       void main() {
-//         surfaceToLightDirection = normalize(v_surfaceToLight);
-//         surfaceToViewDirection = normalize(v_surfaceToView);
-//         halfVector = normalize(surfaceToLightDirection + surfaceToViewDirection);
-//         gl_Position = projection_camera_model_transform * vec4(position, 1.0);
-//         float light = 0.0;
-//         float specular = 0.0;
-//         float dotFromDirection = dot(surfaceToLightDirection, -u_lightDirection);
-
-//         if (dotFromDirection >= u_limit) {
-//           light = dot(normal, surfaceToLightDirection);
-//           if (light > 0.0) {
-//             specular = pow(dot(normal, halfVector), u_shininess);
-//           }
-//         }
-//       }
-//       `
-//       );
-//     }
-
-//     fragment_glsl_code() {
-//       return `
-//       // void main() {
-//       //   gl_FragColor = u_color;
-//       //   gl_FragColor.rgb *= light;
-//       //   gl_FragColor.rgb += specular;
-//       // }
-//     `;
-//     }
-
-//     send_material(gl, gpu, material) {
-//       gl.uniform4fv(gpu.u_color, material.color);
-//       gl.uniform4fv(gpu.u_shininess, material.shininess);
-//       gl.uniform3fv(gpu.u_lightDirection, material.lightDirection);
-//       gl.uniform1f(gpu.u_limit, Math.cos(material.limit));
-//     }
-
-//     send_gpu_state(gl, gpu, gpu_state, model_transform) {
-//       const O = vec4(0, 0, 0, 1),
-//         camera_center = gpu_state.cmaera_transform.times(O).to3();
-//       gl.uniform3fv(gpu.camera_center, camera_center);
-//       const squared_scale = model_transform
-//         .reduce((acc, r) => {
-//           return acc.plus(vec4(...r).times_pairwise(r));
-//         }, vec4(0, 0, 0, 0))
-//         .to3();
-//       gl.uniform3fv(gpu.squared_scale, squared_scale);
-
-//       const PCM = gpu_state.projection_transform
-//         .times(gpu_state.camera_inverse)
-//         .times(model_transform);
-//       gl.uniformMatrix4fv(
-//         gpu.model_transform,
-//         false,
-//         Matrix.flatten_2D_to_1D(model_transform.transposed())
-//       );
-//       gl.uniformMatrix4fv(
-//         gpu.projection_camera_model_transform,
-//         false,
-//         Matrix.flatten_2D_to_1D(PCM.transposed())
-//       );
-
-//       if (!gpu_state.lights.length) return;
-
-//       const light_positions_flattened = [],
-//         light_colors_flattened = [];
-//       for (i = 0; i < 4 * gpu_state.lights.lenght; i++) {
-//         light_positions_flattened.push(
-//           gpu_state.lights[Math.floor(i / 4)].position[i % 4]
-//         );
-//         light_colors_flattened.push(
-//           gpu_state.lights[Math.floor(i / 4)].color[i % 4]
-//         );
-//       }
-//       gl.uniform4fv(gpu.light_positions_or_vectors, light_positions_flattened);
-//       gl.uniform4fv(gpu.light_colors, light_colors_flattened);
-//       gl.uniform1fv(
-//         gpu.light_attenuation_factors,
-//         gpu_state.lights.map((l) => l.attenuation)
-//       );
-//     }
-
-//     update_GPU(context, gpu_addresses, gpu_state, model_transform, material) {
-//       const defaults = {
-//         color: color(0, 0, 1, 1),
-//         shininess: 1,
-//       };
-//       material = Object.assign({}, defaults, material);
-
-//       const [P, C, M] = [
-//           gpu_state.project_transform,
-//           gpu_state.camera_inverse,
-//           model_transform,
-//         ],
-//         PCM = P.times(C).times(M);
-//       context.uniformMatrix4fv(
-//         gpu_addresses.model_transform,
-//         false,
-//         Matrix.flatten_2D_to_1D(model_transform.transposed())
-//       );
-//       context.uniformMatrix4fv(
-//         gpu_addresses.projection_camera_model_transform,
-//         false,
-//         Matrix.flatten_2D_to_1D(PCM.transposed())
-//       );
-
-//       this.send_material(context, gpu_addresses, material);
-//       this.send_gpu_state(context, gpu_addresses, gpu_state, model_transform);
-//     }
-//   });
+          if (tex_color.w < .01) discard;
+          gl_FragColor = vec4((tex_color.xyz + shape_color.xyz) * ambient, shape_color.w * tex_color.w);
+          gl_FragColor.xyz += phong_model_lights(normalize(N), vertex_worldspace);
+        }
+      `
+    );
+  }
+});
 
 const Spotlight_Shader =
   (defs.Spotlight_Shader = class SpotLight_Shader extends Shader {
@@ -658,6 +603,7 @@ const Spotlight_Shader =
                         vec3 L = normalize( surface_to_light_vector );
                         vec3 light_direction_vector = normalize( -light_rotations[i]);
                         float angle = dot(L, light_direction_vector); 
+                        float penumbra = 0.0045;
 
                         if (angle >= limit_angles[i]) {
                           float distance_to_light = length( surface_to_light_vector );
@@ -669,6 +615,18 @@ const Spotlight_Shader =
                           vec3 light_contribution = shape_color.xyz * light_colors[i].xyz * diffusivity * diffuse
                                                                     + light_colors[i].xyz * specularity * specular;
                           result += attenuation * light_contribution;
+                        }
+                        else if (angle + penumbra >= limit_angles[i]) {
+                          float penumbra_factor = (limit_angles[i] - angle) / penumbra;
+                          float distance_to_light = length( surface_to_light_vector );
+                          vec3 H = normalize( L + E );
+                          float diffuse  =      max( dot( N, L ), 0.0 );
+                          float specular = pow( max( dot( N, H ), 0.0 ), smoothness );
+                          float attenuation = 1.0 / (1.0 + light_attenuation_factors[i] * distance_to_light * distance_to_light );
+                        
+                          vec3 light_contribution = shape_color.xyz * light_colors[i].xyz * diffusivity * diffuse
+                                                                    + light_colors[i].xyz * specularity * specular;
+                          result += (attenuation * light_contribution) * (1.0 - penumbra_factor);
                         }
                       }
                     return result;

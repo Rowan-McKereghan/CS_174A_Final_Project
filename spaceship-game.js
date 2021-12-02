@@ -26,12 +26,19 @@ export class SpaceshipGame extends Scene {
     super();
 
     this.shapes = {
+      square: new defs.Square(),
+      skybox: new defs.Square(),
+      text: new defs.Text_Line(30),
       cube: new defs.Cube(),
       cube_outline: new defs.Cube_Outline(),
       testCube: new defs.Cube(),
       ship: new defs.Square_Pyramid_Outline(),
       ship_model: new Shape_From_File('assets/spaceship.obj'),
     };
+    this.shapes.skybox.arrays.texture_coord.forEach((v) => {
+      v[0] *= 5;
+      v[1] *= 5;
+    });
 
     this.materials = {
       basic: new Material(new defs.Basic_Shader()),
@@ -50,7 +57,27 @@ export class SpaceshipGame extends Scene {
       }),
       spotlight: new Material(new defs.Spotlight_Shader(), {
         color: hex_color('#000000'),
-        ambient: 0.05,
+        ambient: 0.1,
+      }),
+      text_image: new Material(new defs.Textured_Phong(), {
+        ambient: 1,
+        diffusivity: 0,
+        speculatrity: 0,
+        texture: new Texture('assets/text.png'),
+      }),
+      //uncomment for stationary stars
+      // space_skybox: new Material(new defs.Textured_Phong(), {
+      //   ambient: 0.5,
+      //   diffusivity: 0,
+      //   specularity: 0,
+      //   texture: new Texture('assets/space.jpg'),
+      // }),
+      //uncomment for falling stars
+      space_skybox: new Material(new defs.Texture_Zoom(), {
+        ambient: 0.5,
+        diffusivity: 0,
+        specularity: 0,
+        texture: new Texture('assets/space.jpg'),
       }),
     };
 
@@ -66,8 +93,8 @@ export class SpaceshipGame extends Scene {
     /****** TEST ******/
     this.boards = [];
     for (let i = 0; i < 3; i++) {
-      this.boards.push(new Board(-300 - 100*i));
-    } 
+      this.boards.push(new Board(-300 - 100 * i));
+    }
 
     this.w_pressed = false;
     this.s_pressed = false;
@@ -79,6 +106,11 @@ export class SpaceshipGame extends Scene {
     this.ship_position = { x: 0, y: 0, z: 0 };
     this.ship_rotation = { horizontal: 0, vertical: 0, tilt: 0 };
     this.ship_collision_velocity = {};
+
+    this.text_position = { x: 0, y: 8, z: 25 };
+    this.text_scale = { x: 0.75, y: 0.75, z: 1 };
+
+    this.score = 0;
   }
 
   make_control_panel() {
@@ -143,11 +175,8 @@ export class SpaceshipGame extends Scene {
       )
       // )
     );
-    program_state.set_camera(
-      this.initial_camera_location.map((x, i) =>
-        Vector.from(camera_inverse[i]).mix(x, 0.7)
-      )
-    );
+
+    program_state.set_camera(this.initial_camera_location);
     program_state.projection_transform = Mat4.perspective(
       Math.PI / 4,
       context.width / context.height,
@@ -177,24 +206,46 @@ export class SpaceshipGame extends Scene {
       ),
     ];
 
-
     /****** TEST ******/
-    // iterate through each board 
+    // iterate through each board
     for (let i = 0; i < 3; i++) {
-      this.boards[i].draw(context, program_state, this.game_speed, dt); // draw the board 
+      this.boards[i].draw(context, program_state, this.game_speed, dt); // draw the board
 
       if (this.game_over) continue; // skip the collision check if the game is over
 
-      // collision will hold an obstacle that collided with the ship 
+      // collision will hold an obstacle that collided with the ship
       let collision = this.boards[i].check_collision(this.ship_position);
-      
+
       // if any obstacle has collided
       if (collision != null) {
-        collision.fracture_at(this.ship_position); // fracture the collided obstacle 
-        this.game_over = true; // end the game 
+        collision.fracture_at(this.ship_position); // fracture the collided obstacle
+        this.game_over = true; // end the game
       }
     }
 
+    this.shapes.text.set_string(this.score.toString(), context.context);
+    this.shapes.text.draw(
+      context,
+      program_state,
+      Mat4.translation(
+        this.text_position.x,
+        this.text_position.y,
+        this.text_position.z
+      )
+        .times(
+          Mat4.scale(this.text_scale.x, this.text_scale.y, this.text_scale.z)
+        )
+        .times(
+          Mat4.translation((this.score.toString().length - 1) * -0.75, 0, 0)
+        ),
+      this.materials.text_image
+    );
+
+    program_state.set_camera(
+      this.initial_camera_location.map((x, i) =>
+        Vector.from(camera_inverse[i]).mix(x, 0.7)
+      )
+    );
 
     /* SETUP SHIP */
     let ship_transform = Mat4.identity()
@@ -222,6 +273,13 @@ export class SpaceshipGame extends Scene {
       ship_transform,
       // .times(Mat4.rotation(Math.PI, 0, 1, 0)),
       this.materials.metal
+    );
+
+    this.shapes.skybox.draw(
+      context,
+      program_state,
+      Mat4.translation(0, 0, -300).times(Mat4.scale(400, 400, 1)),
+      this.materials.space_skybox
     );
 
     if (!this.game_over) {
@@ -275,7 +333,7 @@ export class SpaceshipGame extends Scene {
       this.ship_position.y = Math.max(this.ship_position.y, -6.5);
       this.ship_position.y = Math.min(this.ship_position.y, 12.0);
     } else {
-      (this.game_speed > 1) ? this.game_speed *= .95 : this.game_speed = 0;
+      this.game_speed > 1 ? (this.game_speed *= 0.95) : (this.game_speed = 0);
     }
   }
 }
