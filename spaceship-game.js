@@ -1,5 +1,7 @@
 import { defs, tiny } from './common.js';
 import { Shape_From_File } from './shape-from-file.js';
+import { Obstacle } from './obstacle.js';
+import { Board } from './obstacle_board.js';
 
 const {
   Vector,
@@ -58,99 +60,14 @@ export class SpaceshipGame extends Scene {
       vec3(0, 1, 0)
     );
 
-    this.obstacle_patterns = [
-      // [
-      //   [1, 1, 1, 1, 1],
-      //   [1, 1, 1, 1, 1],
-      //   [1, 1, 1, 1, 1],
-      //   [1, 1, 1, 1, 1],
-      //   [1, 1, 1, 1, 1],
-      // ],
-      [
-        [1, 0, 0, 0, 0],
-        [1, 0, 0, 0, 0],
-        [1, 0, 0, 0, 0],
-        [1, 0, 0, 0, 0],
-        [1, 1, 1, 1, 1],
-      ],
-      [
-        [1, 1, 1, 1, 1],
-        [0, 0, 0, 0, 1],
-        [0, 0, 0, 0, 1],
-        [0, 0, 0, 0, 1],
-        [0, 0, 0, 0, 1],
-      ],
-      [
-        [1, 1, 1, 1, 1],
-        [1, 0, 0, 0, 1],
-        [1, 0, 0, 0, 1],
-        [1, 0, 0, 0, 1],
-        [1, 1, 1, 1, 1],
-      ],
-      [
-        [0, 0, 0, 0, 0],
-        [0, 1, 1, 1, 0],
-        [0, 1, 0, 1, 0],
-        [0, 1, 1, 1, 0],
-        [0, 0, 0, 0, 0],
-      ],
-      [
-        [1, 0, 0, 0, 1],
-        [0, 1, 0, 1, 0],
-        [0, 0, 1, 0, 0],
-        [0, 1, 0, 1, 0],
-        [1, 0, 0, 0, 1],
-      ],
-      [
-        [1, 1, 0, 0, 0],
-        [1, 1, 0, 0, 0],
-        [1, 1, 0, 0, 0],
-        [1, 1, 0, 0, 0],
-        [1, 1, 0, 0, 0],
-      ],
-      [
-        [0, 0, 0, 1, 1],
-        [0, 0, 0, 1, 1],
-        [0, 0, 0, 1, 1],
-        [0, 0, 0, 1, 1],
-        [0, 0, 0, 1, 1],
-      ],
-      [
-        [1, 1, 1, 1, 1],
-        [1, 1, 1, 1, 1],
-        [0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0],
-      ],
-      [
-        [0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0],
-        [1, 1, 1, 1, 1],
-        [1, 1, 1, 1, 1],
-      ],
-    ];
-
     this.game_over = false;
-    this.speed = 80;
-    this.spawn_point = 400;
-    // this.spawn_point = 30;
-    this.obstacle_spacing = 100;
-    this.obstacles = [];
-    for (let i = 0; i < 100; ++i) {
-      this.obstacles.push({ transform: null, pattern: null });
-      this.obstacles[i].transform = Mat4.identity().times(
-        Mat4.translation(
-          0,
-          0,
-          -1 * (this.spawn_point + this.obstacle_spacing * i)
-        )
-      );
-      this.obstacles[i].pattern =
-        this.obstacle_patterns[
-          Math.floor(Math.random() * this.obstacle_patterns.length)
-        ];
-    }
+    this.game_speed = 80;
+
+    /****** TEST ******/
+    this.boards = [];
+    for (let i = 0; i < 3; i++) {
+      this.boards.push(new Board(-300 - 100*i));
+    } 
 
     this.w_pressed = false;
     this.s_pressed = false;
@@ -218,83 +135,6 @@ export class SpaceshipGame extends Scene {
     );
   }
 
-  check_collision(cube_transform) {
-    let cubeX = cube_transform[0][3];
-    let cubeY = cube_transform[1][3];
-    if (
-      this.ship_position.x + 1 >= cubeX - 1 &&
-      this.ship_position.x - 1 <= cubeX + 1 &&
-      this.ship_position.y + 1 >= cubeY - 1 &&
-      this.ship_position.y - 1 <= cubeY + 1
-    ) {
-      this.game_over = true;
-      console.log(this.speed);
-      this.speed *= 0.1;
-      console.log('collision detected');
-      this.ship_collision_velocity = {
-        translation: {
-          x: (this.ship_position.x - cubeX) * (this.speed / 80),
-          y: (this.ship_position.y - cubeY) * (this.speed / 80),
-          z: this.speed / 80,
-        },
-        rotation: {
-          angle: Math.PI * (this.speed / 500),
-          is_x: this.ship_position.y > cubeY ? 1 : -1,
-          is_y: this.ship_position.x < cubeX ? 1 : -1,
-          is_z: this.ship_position.y > cubeY ? 1 : -1,
-        },
-      };
-    }
-  }
-
-  draw_cube(context, program_state, idx, row, column) {
-    let cube_transform = this.obstacles[idx].transform.times(
-      Mat4.translation(-8 + column * 4, 11 - row * 4, 50)
-    );
-    if (
-      cube_transform[2][3] >= -1 &&
-      cube_transform[2][3] <= 1 &&
-      !this.game_over
-    ) {
-      this.check_collision(cube_transform);
-    }
-
-    this.shapes.cube.draw(
-      context,
-      program_state,
-      cube_transform,
-      this.materials.spotlight.override({ color: hex_color('#ffffff') })
-    );
-    // this.shapes.cube_outline.draw(
-    //   context,
-    //   program_state,
-    //   cube_transform,
-    //   this.materials.basic,
-    //   'LINES'
-    // );
-  }
-
-  draw_cube_set(context, program_state, idx, dt) {
-    if (this.obstacles[idx].transform[2][3] >= -35) {
-      this.obstacles[idx].transform = this.obstacles[idx].transform.times(
-        Mat4.translation(0, 0, -1 * this.spawn_point)
-      );
-      this.obstacles[idx].pattern =
-        this.obstacle_patterns[
-          Math.floor(Math.random() * this.obstacle_patterns.length)
-        ];
-    }
-    this.obstacles[idx].transform = this.obstacles[idx].transform.times(
-      Mat4.translation(0, 0, this.speed * dt)
-    );
-    for (let i = 0; i < 5; ++i) {
-      for (let j = 0; j < 5; ++j) {
-        if (this.obstacles[idx].pattern[i][j] === 1)
-          this.draw_cube(context, program_state, idx, i, j);
-      }
-    }
-  }
-
   display(context, program_state) {
     let camera_inverse = Mat4.inverse(
       // this.ship_rotation.times(
@@ -337,9 +177,22 @@ export class SpaceshipGame extends Scene {
       ),
     ];
 
-    for (let i = 0; i < 5; ++i) {
-      this.draw_cube_set(context, program_state, i, dt);
+
+    /****** TEST ******/
+    // iterate through each board 
+    for (let i = 0; i < 3; i++) {
+      this.boards[i].draw(context, program_state, this.game_speed, dt); // draw the board 
+
+      // collision will hold an obstacle that collided with the ship 
+      let collision = this.boards[i].check_collision(this.ship_position);
+      
+      // if any obstacle has collided
+      if (collision != null) {
+        collision.fracture_at(this.ship_position); // fracture the collided obstacle 
+        this.game_over = true; // end the game 
+      }
     }
+
 
     /* SETUP SHIP */
     let ship_transform = Mat4.identity()
@@ -370,7 +223,7 @@ export class SpaceshipGame extends Scene {
     );
 
     if (!this.game_over) {
-      this.speed += dt * 2;
+      this.game_speed += dt * 2;
       if (this.w_pressed) {
         if (this.ship_rotation.vertical < Math.PI / 4)
           this.ship_rotation.vertical +=
@@ -420,39 +273,8 @@ export class SpaceshipGame extends Scene {
       this.ship_position.y = Math.max(this.ship_position.y, -6.5);
       this.ship_position.y = Math.min(this.ship_position.y, 12.0);
     } else {
-      if (this.speed > 0.5) {
-        this.speed -= this.speed * 0.95 * dt;
-        this.ship_position.x +=
-          this.ship_collision_velocity.translation.x * dt * this.speed;
-        this.ship_position.y +=
-          this.ship_collision_velocity.translation.y * dt * this.speed;
-        this.ship_position.z +=
-          this.ship_collision_velocity.translation.z * dt * this.speed;
-        // this.ship_translation = this.ship_translation.times(
-        //   Mat4.translation(
-        //     this.ship_collision_velocity.translation.x * dt * this.speed,
-        //     this.ship_collision_velocity.translation.y * dt * this.speed,
-        //     this.ship_collision_velocity.translation.z * dt * this.speed
-        //   )
-        // );
-        // this.ship_rotation = this.ship_rotation.times(
-        //   Mat4.rotation(
-        //     this.ship_collision_velocity.rotation.angle * dt * this.speed,
-        //     this.ship_collision_velocity.rotation.is_x,
-        //     this.ship_collision_velocity.rotation.is_y,
-        //     this.ship_collision_velocity.rotation.is_z
-        //   )
-        // );
-        if (this.ship_collision_velocity.rotation.is_x)
-          this.ship_rotation.x +=
-            this.ship_collision_velocity.rotation.angle * dt * this.speed;
-        if (this.ship_collision_velocity.rotation.is_y)
-          this.ship_rotation.y +=
-            this.ship_collision_velocity.rotation.angle * dt * this.speed;
-        if (this.ship_collision_velocity.rotation.is_z)
-          this.ship_rotation.z +=
-            this.ship_collision_velocity.rotation.angle * dt * this.speed;
-      } else this.speed = 0;
+      this.game_speed = 8;
+      // fracture the piece
     }
   }
 }
