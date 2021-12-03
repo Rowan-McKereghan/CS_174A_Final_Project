@@ -36,8 +36,8 @@ export class SpaceshipGame extends Scene {
       ship_model: new Shape_From_File('assets/spaceship.obj'),
     };
     this.shapes.skybox.arrays.texture_coord.forEach((v) => {
-      v[0] *= 5;
-      v[1] *= 5;
+      v[0] *= 10;
+      v[1] *= 10;
     });
 
     this.materials = {
@@ -107,7 +107,7 @@ export class SpaceshipGame extends Scene {
     this.ship_rotation = { horizontal: 0, vertical: 0, tilt: 0 };
     this.ship_collision_velocity = {};
 
-    this.text_position = { x: 0, y: 8, z: 25 };
+    this.text_position = { x: 0, y: 8, z: 10 };
     this.text_scale = { x: 0.75, y: 0.75, z: 1 };
 
     this.score = 0;
@@ -206,7 +206,10 @@ export class SpaceshipGame extends Scene {
       ),
     ];
 
-    this.shapes.text.set_string(this.score.toString(), context.context);
+    this.shapes.text.set_string(
+      Math.floor(this.score).toString(),
+      context.context
+    );
     this.shapes.text.draw(
       context,
       program_state,
@@ -219,7 +222,11 @@ export class SpaceshipGame extends Scene {
           Mat4.scale(this.text_scale.x, this.text_scale.y, this.text_scale.z)
         )
         .times(
-          Mat4.translation((this.score.toString().length - 1) * -0.75, 0, 0)
+          Mat4.translation(
+            (Math.floor(this.score).toString().length - 1) * -0.75,
+            0,
+            0
+          )
         ),
       this.materials.text_image
     );
@@ -286,6 +293,7 @@ export class SpaceshipGame extends Scene {
     );
 
     if (!this.game_over) {
+      this.score += dt;
       this.game_speed += dt * 2;
       if (this.w_pressed) {
         if (this.ship_rotation.vertical < Math.PI / 4)
