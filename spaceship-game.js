@@ -313,19 +313,19 @@ export class SpaceshipGame extends Scene {
 
        /****** TEST ******/
     // iterate through each board
-    for (let i = 0; i < this.boards.length; i++) {
+        for (let i = 0; i < this.boards.length; i++) {
 
-      this.boards[i].draw(context, program_state, this.game_speed, dt, shadow_pass, this.lightDepthTexture); // draw the board
+          this.boards[i].draw(context, program_state, this.game_speed, dt, shadow_pass); // draw the board
 
-      if (!this.game_playing) continue;
-      let collision = this.boards[i].check_collision(this.ship_position);
+          if (!this.game_playing) continue;
+          let collision = this.boards[i].check_collision(this.ship_position);
 
-      // if any obstacle has collided
-      if (collision != null) {
-        collision.fracture_at(this.ship_position); // fracture the collided obstacle
-        // this.game_playing = false; // end the game
-      }
-    }
+          // if any obstacle has collided
+          if (collision != null) {
+            collision.fracture_at(this.ship_position); // fracture the collided obstacle
+            // this.game_playing = false; // end the game
+          }
+        }
   } // skip the collision check if the game is over
 
 
@@ -385,7 +385,7 @@ export class SpaceshipGame extends Scene {
         // this.game_over ? 100000 : 3500,
         // this.game_over ? 0 : Math.PI / 3.155
         this.game_playing ? color(1.0, 1.0, 1.0, 1.0) : color(1.0, 0, 0, 1.0),
-        this.game_playing ? 3500 : 100000,
+        this.game_playing ? 350000 : 100000,
         this.game_playing ? Math.PI / 3.155 : 0
       ),
     ];
@@ -427,11 +427,25 @@ export class SpaceshipGame extends Scene {
       );
     }
 
+    let ship_transform = Mat4.identity()
+      .times(
+        Mat4.translation(
+          this.ship_position.x,
+          this.ship_position.y,
+          this.ship_position.z
+        )
+      )
+      .times(Mat4.rotation(this.ship_rotation.horizontal, 0, 1, 0))
+      .times(Mat4.rotation(this.ship_rotation.vertical, 1, 0, 0))
+      .times(Mat4.rotation(this.ship_rotation.tilt, 0, 0, 1))
+      .times(Mat4.rotation(Math.PI / 2, 0, 1, 0));
+
     program_state.set_camera(
       this.initial_camera_location.map((x, i) =>
         Vector.from(camera_inverse[i]).mix(x, 0.6)
       )
     );
+
 
     //this.light_view_target = vec4(0, 0, 0, 1);
     this.light_field_of_view = 130 * Math.PI / 180; // 130 degree
@@ -464,6 +478,19 @@ export class SpaceshipGame extends Scene {
     program_state.projection_transform = Mat4.perspective(Math.PI / 4, context.width / context.height, 0.5, 500);
     this.render_scene(context, program_state, true,true, true);
     
+   
+    let plane_model_transform = Mat4.identity().times(Mat4.translation(50, 0, -200));
+
+    plane_model_transform = plane_model_transform.times(Mat4.scale(100, 100, 1));
+
+    this.shapes.square.draw(context, program_state, plane_model_transform, this.materials.color.override({ambient: 1, color: hex_color("#ffffff")}));
+
+    /*this.shapes.square_2d.draw(context, program_state,
+            Mat4.translation(-.99, .08, 0).times(
+            Mat4.scale(0.5, 0.5 * gl.canvas.width / gl.canvas.height, 1)
+            ),
+            this.depth_tex.override({texture: this.lightDepthTexture})
+        );*/
 
 
     if (this.game_playing) {

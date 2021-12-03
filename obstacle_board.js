@@ -116,11 +116,11 @@ export class Board {
   }
 
   // draw the entire board on the screen
-  draw(context, program_state, speed, dt, shadow_pass, lightD) {
+  draw(context, program_state, speed, dt, shadow_pass) {
     this.move(speed, dt); // move the obstacles
     for (let i = 0; i < 25; i++) {
       if (this.patterns[this.pattern_index][i] == 1)
-        this.obstacles[i].draw(context, program_state, shadow_pass, lightD);
+        this.obstacles[i].draw(context, program_state, shadow_pass);
     }
   }
 }

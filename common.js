@@ -789,6 +789,8 @@ const Spotlight_Shader =
                     // phong_model_lights():  Add up the lights' contributions.
                     vec3 E = normalize( camera_center - vertex_worldspace );
                     vec3 result = vec3( 0.0 );
+                    light_diffuse_contribution = vec3( 0.0 );
+                    light_specular_contribution = vec3( 0.0 );
                     for(int i = 0; i < N_LIGHTS; i++){
                         vec3 surface_to_light_vector = light_positions_or_vectors[i].xyz - 
                                                        light_positions_or_vectors[i].w * vertex_worldspace;                                             

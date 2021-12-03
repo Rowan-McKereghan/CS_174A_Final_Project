@@ -1,4 +1,6 @@
 import { defs, tiny } from '/common.js';
+import {Color_Phong_Shader, Shadow_Textured_Phong_Shader,
+    Depth_Texture_Shader_2D, Buffered_Texture, LIGHT_DEPTH_TEX_SIZE} from './shadow-demo-shaders.js'
 
 const {
   vec3,
@@ -27,9 +29,9 @@ export class Obstacle {
       color: color(0, 0, 1, 1),
       ambient: 0.15,
     });
-    this.shadow_material = new Material(new defs.Shadow_Spotlight_Shader(1), {
+    this.shadow_material = new Material(new Shadow_Textured_Phong_Shader(1), {
     color: color(0, 0, 1, 1),
-      ambient: 0.15,
+      ambient: .3, diffusivity: 0.6, specularity: 0.4, smoothness: 64,
       color_texture: null,
       light_depth_texture: null
       });
@@ -81,13 +83,13 @@ export class Obstacle {
   }
 
   // draw the unfractured obstacle on the screen
-  draw(context, program_state, shadow_pass, lightD) {
-    if(shadow_pass) {
+  draw(context, program_state, shadow_pass) {
+    /*if(shadow_pass) {
       this.shadow_material.override({light_depth_texture: lightD});
     }
     else{
       this.shadow_material.override({light_depth_texture: null});
-    }
+    }*/
     if (!this.is_fractured) {
       this.cube.draw(
         context,
