@@ -138,6 +138,7 @@ export class SpaceshipGame extends Scene {
     this.text_scale = { x: 0.75, y: 0.75, z: 1 };
 
     this.score = 0;
+    this.transfer;
 
     // For the floor or other plain objects
     this.floor = new Material(new Shadow_Textured_Phong_Shader(1), {
@@ -175,7 +176,7 @@ export class SpaceshipGame extends Scene {
         this.ship_rotation = { horizontal: 0, vertical: 0, tilt: 0 };
         this.boards = [];
         for (let i = 0; i < 3; i++) {
-          this.boards.push(new Board(-300 - 100 * i));
+          this.boards.push(new Board((-300 - 100 * i), this.transfer));
         }
       }
     });
@@ -237,7 +238,8 @@ export class SpaceshipGame extends Scene {
         this.lightDepthTexture = gl.createTexture();
         // Bind it to TinyGraphics
         this.light_depth_texture = new Buffered_Texture(this.lightDepthTexture);
-        this.floor.light_depth_texture = this.light_depth_texture
+        this.floor.light_depth_texture = this.light_depth_texture;
+        this.transfer = this.light_depth_texture;
 
         this.lightDepthTextureSize = LIGHT_DEPTH_TEX_SIZE;
         gl.bindTexture(gl.TEXTURE_2D, this.lightDepthTexture);

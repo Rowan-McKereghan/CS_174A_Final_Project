@@ -17,7 +17,7 @@ const {
 
 export class Board {
   // start_z represents the z-coordinate of the board at spawn
-  constructor(start_z) {
+  constructor(start_z, transfer) {
     // this contains the grid pattern for each possible layer of obstacles
     this.patterns = [
       [
@@ -75,7 +75,7 @@ export class Board {
               11 - Math.floor(i / 5) * 4,
               this.z
             )
-          )
+          ), transfer
         )
       );
   }

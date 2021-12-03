@@ -20,7 +20,7 @@ const {
 // cube obstacle.
 export class Obstacle {
   // transform represents the matrix transform of the obstacle
-  constructor(transform) {
+  constructor(transform, transfer) {
     this.transform = transform;
     this.is_fractured = false; // upon creation, the obstacle is not fractured
     this.cube = new defs.Cube();
@@ -33,7 +33,7 @@ export class Obstacle {
     color: color(0, 0, 1, 1),
       ambient: .3, diffusivity: 0.6, specularity: 0.4, smoothness: 64,
       color_texture: null,
-      light_depth_texture: null
+      light_depth_texture: transfer
       });
   }
 
