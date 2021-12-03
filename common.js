@@ -557,7 +557,7 @@ const Texture_Zoom = (defs.Texture_Zoom = class Texture_Zoom extends (
           float x_coord = f_tex_coord.x;
           float y_coord = f_tex_coord.y;
           float new_x = x_coord;
-          float new_y = mod(y_coord + animation_time / 5.0, 10.0);
+          float new_y = mod(y_coord + animation_time / 10.0, 10.0);
 
           vec2 new_coord = vec2(new_x, new_y);
           vec4 tex_color = texture2D(texture, new_coord);
