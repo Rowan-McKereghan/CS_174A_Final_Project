@@ -51,8 +51,8 @@ export class SpaceshipGame extends Scene {
       metal: new Material(new defs.Textured_Phong(1), {
         color: color(0.5, 0.5, 0.5, 1),
         ambient: 0.3,
-        diffusivity: 0.5,
-        specularity: 0.5,
+        diffusivity: 1,
+        specularity: 1,
         texture: new Texture('assets/metal.jpg'),
       }),
       spotlight: new Material(new defs.Spotlight_Shader(), {
@@ -200,28 +200,11 @@ export class SpaceshipGame extends Scene {
           Math.sin(this.ship_rotation.vertical),
           -5
         ),
-        color(1.0, 1.0, 1.0, 1.0),
-        2500,
-        Math.PI / 3.155
+        this.game_over ? color(1.0, 0, 0, 1.0) : color(1.0, 1.0, 1.0, 1.0),
+        this.game_over ? 100000 : 3500,
+        this.game_over ? 0 : Math.PI / 3.155
       ),
     ];
-
-    /****** TEST ******/
-    // iterate through each board
-    for (let i = 0; i < 3; i++) {
-      this.boards[i].draw(context, program_state, this.game_speed, dt); // draw the board
-
-      if (this.game_over) continue; // skip the collision check if the game is over
-
-      // collision will hold an obstacle that collided with the ship
-      let collision = this.boards[i].check_collision(this.ship_position);
-
-      // if any obstacle has collided
-      if (collision != null) {
-        collision.fracture_at(this.ship_position); // fracture the collided obstacle
-        this.game_over = true; // end the game
-      }
-    }
 
     this.shapes.text.set_string(this.score.toString(), context.context);
     this.shapes.text.draw(
@@ -247,6 +230,23 @@ export class SpaceshipGame extends Scene {
       )
     );
 
+    /****** TEST ******/
+    // iterate through each board
+    for (let i = 0; i < 3; i++) {
+      this.boards[i].draw(context, program_state, this.game_speed, dt); // draw the board
+
+      if (this.game_over) continue; // skip the collision check if the game is over
+
+      // collision will hold an obstacle that collided with the ship
+      let collision = this.boards[i].check_collision(this.ship_position);
+
+      // if any obstacle has collided
+      if (collision != null) {
+        collision.fracture_at(this.ship_position); // fracture the collided obstacle
+        this.game_over = true; // end the game
+      }
+    }
+
     /* SETUP SHIP */
     let ship_transform = Mat4.identity()
       .times(
@@ -265,7 +265,10 @@ export class SpaceshipGame extends Scene {
       context,
       program_state,
       ship_transform,
-      this.materials.transparent
+      this.materials.color.override({
+        color: hex_color('#ffffff'),
+        ambient: 1.0,
+      })
     );
     this.shapes.ship_model.draw(
       context,
@@ -333,7 +336,9 @@ export class SpaceshipGame extends Scene {
       this.ship_position.y = Math.max(this.ship_position.y, -6.5);
       this.ship_position.y = Math.min(this.ship_position.y, 12.0);
     } else {
-      this.game_speed > 1 ? (this.game_speed *= 0.95) : (this.game_speed = 0);
+      this.game_speed > 1
+        ? (this.game_speed *= 0.25 ** dt)
+        : (this.game_speed = 0);
     }
   }
 }
