@@ -82,7 +82,7 @@ export class SpaceshipGame extends Scene {
     };
 
     this.initial_camera_location = Mat4.look_at(
-      vec3(0, 3, 50),
+      vec3(0, 3, 35),
       vec3(0, 0, 0),
       vec3(0, 1, 0)
     );
@@ -192,7 +192,7 @@ export class SpaceshipGame extends Scene {
         vec4(
           this.ship_position.x,
           this.ship_position.y,
-          this.ship_position.z,
+          this.game_over ? this.ship_position.z + 50 : this.ship_position.z,
           1
         ),
         vec3(
@@ -226,7 +226,7 @@ export class SpaceshipGame extends Scene {
 
     program_state.set_camera(
       this.initial_camera_location.map((x, i) =>
-        Vector.from(camera_inverse[i]).mix(x, 0.7)
+        Vector.from(camera_inverse[i]).mix(x, 0.6)
       )
     );
 
@@ -337,7 +337,7 @@ export class SpaceshipGame extends Scene {
       this.ship_position.y = Math.min(this.ship_position.y, 12.0);
     } else {
       this.game_speed > 1
-        ? (this.game_speed *= 0.25 ** dt)
+        ? (this.game_speed *= 0.15 ** dt)
         : (this.game_speed = 0);
     }
   }
