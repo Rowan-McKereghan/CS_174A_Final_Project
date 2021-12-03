@@ -27,6 +27,10 @@ export class Obstacle {
       color: color(0, 0, 1, 1),
       ambient: 0.15,
     });
+    this.shadow_material = new Material(new defs.Shadow_Spotlight_Shader(1), {
+    color: color(0, 0, 1, 1),
+      ambient: 0.15,
+      });
   }
 
   // move the obstacle
@@ -74,13 +78,13 @@ export class Obstacle {
   }
 
   // draw the unfractured obstacle on the screen
-  draw(context, program_state) {
+  draw(context, program_state, shadow_pass) {
     if (!this.is_fractured) {
       this.cube.draw(
         context,
         program_state,
         this.transform.times(Mat4.scale(1, 1, 0.1)),
-        this.material
+        shadow_pass? this.material : this.shadow_material
       );
     } else {
       /****** TEST ******/

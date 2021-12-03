@@ -665,6 +665,273 @@ const Spotlight_Shader =
                   } `
       );
     }
+    
+
+    send_material(gl, gpu, material) {
+      // send_material(): Send the desired shape-wide material qualities to the
+      // graphics card, where they will tweak the Phong lighting formula.
+      gl.uniform4fv(gpu.shape_color, material.color);
+      gl.uniform1f(gpu.ambient, material.ambient);
+      gl.uniform1f(gpu.diffusivity, material.diffusivity);
+      gl.uniform1f(gpu.specularity, material.specularity);
+      gl.uniform1f(gpu.smoothness, material.smoothness);
+    }
+
+    send_gpu_state(gl, gpu, gpu_state, model_transform) {
+      // send_gpu_state():  Send the state of our whole drawing context to the GPU.
+      const O = vec4(0, 0, 0, 1),
+        camera_center = gpu_state.camera_transform.times(O).to3();
+      gl.uniform3fv(gpu.camera_center, camera_center);
+      // Use the squared scale trick from "Eric's blog" instead of inverse transpose matrix:
+      const squared_scale = model_transform
+        .reduce((acc, r) => {
+          return acc.plus(vec4(...r).times_pairwise(r));
+        }, vec4(0, 0, 0, 0))
+        .to3();
+      gl.uniform3fv(gpu.squared_scale, squared_scale);
+      // Send the current matrices to the shader.  Go ahead and pre-compute
+      // the products we'll need of the of the three special matrices and just
+      // cache and send those.  They will be the same throughout this draw
+      // call, and thus across each instance of the vertex shader.
+      // Transpose them since the GPU expects matrices as column-major arrays.
+      const PCM = gpu_state.projection_transform
+        .times(gpu_state.camera_inverse)
+        .times(model_transform);
+      gl.uniformMatrix4fv(
+        gpu.model_transform,
+        false,
+        Matrix.flatten_2D_to_1D(model_transform.transposed())
+      );
+      gl.uniformMatrix4fv(
+        gpu.projection_camera_model_transform,
+        false,
+        Matrix.flatten_2D_to_1D(PCM.transposed())
+      );
+
+      // Omitting lights will show only the material color, scaled by the ambient term:
+      if (!gpu_state.lights.length) return;
+
+      const light_positions_flattened = [],
+        light_colors_flattened = [];
+      for (let i = 0; i < 4 * gpu_state.lights.length; i++) {
+        light_positions_flattened.push(
+          gpu_state.lights[Math.floor(i / 4)].position[i % 4]
+        );
+        light_colors_flattened.push(
+          gpu_state.lights[Math.floor(i / 4)].color[i % 4]
+        );
+      }
+      const light_rotations_flattened = [];
+      for (let i = 0; i < 3 * gpu_state.lights.length; i++) {
+        light_rotations_flattened.push(
+          gpu_state.lights[Math.floor(i / 3)].rotation[i % 3]
+        );
+      }
+      gl.uniform4fv(gpu.light_positions_or_vectors, light_positions_flattened);
+      gl.uniform3fv(gpu.light_rotations, light_rotations_flattened);
+      gl.uniform4fv(gpu.light_colors, light_colors_flattened);
+      gl.uniform1fv(
+        gpu.light_attenuation_factors,
+        gpu_state.lights.map((l) => l.attenuation)
+      );
+      gl.uniform1fv(
+        gpu.limit_angles,
+        gpu_state.lights.map((l) => l.limit_angle)
+      );
+    }
+
+    update_GPU(context, gpu_addresses, gpu_state, model_transform, material) {
+      // update_GPU(): Define how to synchronize our JavaScript's variables to the GPU's.  This is where the shader
+      // recieves ALL of its inputs.  Every value the GPU wants is divided into two categories:  Values that belong
+      // to individual objects being drawn (which we call "Material") and values belonging to the whole scene or
+      // program (which we call the "Program_State").  Send both a material and a program state to the shaders
+      // within this function, one data field at a time, to fully initialize the shader for a draw.
+
+      // Fill in any missing fields in the Material object with custom defaults for this shader:
+      const defaults = {
+        color: color(0, 0, 0, 1),
+        ambient: 0,
+        diffusivity: 0.8,
+        specularity: 0.8,
+        smoothness: 40,
+      };
+      material = Object.assign({}, defaults, material);
+
+      this.send_material(context, gpu_addresses, material);
+      this.send_gpu_state(context, gpu_addresses, gpu_state, model_transform);
+    }
+  });
+
+
+  const Shadow_Spotlight_Shader =
+  (defs.Shadow_Spotlight_Shader = class Shadow_SpotLight_Shader extends Shader {
+    constructor(num_lights = 1) {
+      super();
+      this.num_lights = num_lights;
+    }
+
+    shared_glsl_code() {
+      // ********* SHARED CODE, INCLUDED IN BOTH SHADERS *********
+      return (
+        ` precision mediump float;
+                const int N_LIGHTS = ` +
+        this.num_lights +
+        `;
+                uniform float ambient, diffusivity, specularity, smoothness;
+                uniform vec4 light_positions_or_vectors[N_LIGHTS], light_colors[N_LIGHTS];
+                uniform vec3 light_rotations[N_LIGHTS];
+                uniform float light_attenuation_factors[N_LIGHTS], limit_angles[N_LIGHTS];
+                uniform vec4 shape_color;
+                uniform vec3 squared_scale, camera_center;
+        
+                varying vec3 N, vertex_worldspace;
+                vec3 phong_model_lights( vec3 N, vec3 vertex_worldspace, out vec3 light_diffuse_contribution, out vec3 light_specular_contribution){                                        
+                    // phong_model_lights():  Add up the lights' contributions.
+                    vec3 E = normalize( camera_center - vertex_worldspace );
+                    vec3 result = vec3( 0.0 );
+                    for(int i = 0; i < N_LIGHTS; i++){
+                        vec3 surface_to_light_vector = light_positions_or_vectors[i].xyz - 
+                                                       light_positions_or_vectors[i].w * vertex_worldspace;                                             
+                        vec3 L = normalize( surface_to_light_vector );
+                        vec3 light_direction_vector = normalize( -light_rotations[i]);
+                        float angle = dot(L, light_direction_vector); 
+                        float penumbra = 0.0045;
+
+                        if (angle >= limit_angles[i]) {
+                          float distance_to_light = length( surface_to_light_vector );
+                          vec3 H = normalize( L + E );
+                          float diffuse  =      max( dot( N, L ), 0.0 );
+                          float specular = pow( max( dot( N, H ), 0.0 ), smoothness );
+                          float attenuation = 1.0 / (1.0 + light_attenuation_factors[i] * distance_to_light * distance_to_light );
+                        
+                          vec3 light_contribution = shape_color.xyz * light_colors[i].xyz * diffusivity * diffuse
+                                                                    + light_colors[i].xyz * specularity * specular;
+                          light_diffuse_contribution += attenuation * shape_color.xyz * light_colors[i].xyz * diffusivity * diffuse;
+                          light_specular_contribution += attenuation * shape_color.xyz * specularity * specular;
+                          result += attenuation * light_contribution;
+                        }
+                        else if (angle + penumbra >= limit_angles[i]) {
+                          float penumbra_factor = (limit_angles[i] - angle) / penumbra;
+                          float distance_to_light = length( surface_to_light_vector );
+                          vec3 H = normalize( L + E );
+                          float diffuse  =      max( dot( N, L ), 0.0 );
+                          float specular = pow( max( dot( N, H ), 0.0 ), smoothness );
+                          float attenuation = 1.0 / (1.0 + light_attenuation_factors[i] * distance_to_light * distance_to_light );
+                        
+                          vec3 light_contribution = shape_color.xyz * light_colors[i].xyz * diffusivity * diffuse
+                                                                    + light_colors[i].xyz * specularity * specular;
+
+                          light_diffuse_contribution += attenuation * shape_color.xyz * light_colors[i].xyz * diffusivity * diffuse;
+                          light_specular_contribution += attenuation * shape_color.xyz * specularity * specular;
+                          result += (attenuation * light_contribution) * (1.0 - penumbra_factor);
+                        }
+                      }
+                    return result;
+                  } `
+      );
+    }
+
+    vertex_glsl_code() {
+      // ********* VERTEX SHADER *********
+      return (
+        this.shared_glsl_code() +
+        `
+                varying vec2 f_tex_coord;
+                attribute vec3 position, normal;                            
+                // Position is expressed in object coordinates.
+                attribute vec2 texture_coord;
+                
+                uniform mat4 model_transform;
+                uniform mat4 projection_camera_model_transform;
+        
+                void main(){                                                                   
+                    // The vertex's final resting place (in NDCS):
+                    gl_Position = projection_camera_model_transform * vec4( position, 1.0 );
+                    // The final normal vector in screen space.
+                    N = normalize( mat3( model_transform ) * normal / squared_scale);
+                    vertex_worldspace = ( model_transform * vec4( position, 1.0 ) ).xyz;
+                    // Turn the per-vertex texture coordinate into an interpolated variable.
+                    f_tex_coord = texture_coord;
+                  } `
+      );
+    }
+
+    fragment_glsl_code() {
+      // ********* FRAGMENT SHADER *********
+      // A fragment is a pixel that's overlapped by the current triangle.
+      // Fragments affect the final image or get discarded due to depth.
+      return (
+        this.shared_glsl_code() +
+        `
+                varying vec2 f_tex_coord;
+                uniform sampler2D texture;
+                uniform sampler2D light_depth_texture;
+                uniform mat4 light_view_mat;
+                uniform mat4 light_proj_mat;
+                uniform float animation_time;
+                uniform float light_depth_bias;
+                uniform bool use_texture;
+                uniform bool draw_shadow;
+                uniform float light_texture_size;
+                
+                float PCF_shadow(vec2 center, float projected_depth) {
+                    float shadow = 0.0;
+                    float texel_size = 1.0 / light_texture_size;
+                    for(int x = -1; x <= 1; ++x)
+                    {
+                        for(int y = -1; y <= 1; ++y)
+                        {
+                            float light_depth_value = texture2D(light_depth_texture, center + vec2(x, y) * texel_size).r; 
+                            shadow += projected_depth >= light_depth_value + light_depth_bias ? 1.0 : 0.0;        
+                        }    
+                    }
+                    shadow /= 9.0;
+                    return shadow;
+                }
+                
+                void main(){
+                    // Sample the texture image in the correct place:
+                    vec4 tex_color = texture2D( texture, f_tex_coord );
+                    if (!use_texture)
+                        tex_color = vec4(0, 0, 0, 1);
+                    if( tex_color.w < .01 ) discard;
+                    
+                    // Compute an initial (ambient) color:
+                    gl_FragColor = vec4( ( tex_color.xyz + shape_color.xyz ) * ambient, shape_color.w * tex_color.w ); 
+                    
+                    // Compute the final color with contributions from lights:
+                    vec3 diffuse, specular;
+                    vec3 other_than_ambient = phong_model_lights( normalize( N ), vertex_worldspace, diffuse, specular );
+                    
+                    // Deal with shadow:
+                    if (draw_shadow) {
+                        vec4 light_tex_coord = (light_proj_mat * light_view_mat * vec4(vertex_worldspace, 1.0));
+                        // convert NDCS from light's POV to light depth texture coordinates
+                        light_tex_coord.xyz /= light_tex_coord.w; 
+                        light_tex_coord.xyz *= 0.5;
+                        light_tex_coord.xyz += 0.5;
+                        float light_depth_value = texture2D( light_depth_texture, light_tex_coord.xy ).r;
+                        float projected_depth = light_tex_coord.z;
+                        
+                        bool inRange =
+                            light_tex_coord.x >= 0.0 &&
+                            light_tex_coord.x <= 1.0 &&
+                            light_tex_coord.y >= 0.0 &&
+                            light_tex_coord.y <= 1.0;
+                              
+                        float shadowness = PCF_shadow(light_tex_coord.xy, projected_depth);
+                        
+                        if (inRange && shadowness > 0.3) {
+                            diffuse *= 0.2 + 0.8 * (1.0 - shadowness);
+                            specular *= 1.0 - shadowness;
+                        }
+                    }
+                    
+                    gl_FragColor.xyz += diffuse + specular;
+                } `
+      );
+    }
+    
 
     send_material(gl, gpu, material) {
       // send_material(): Send the desired shape-wide material qualities to the
