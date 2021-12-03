@@ -21,56 +21,59 @@ const {
   Scene,
 } = tiny;
 
-const numParticles = 50;
+const numParticles = 25;
 
-const particle = 
-  class particle {
-    constructor(square, posZ, posY, color, velocity) {
-      this.square = square
-      this.posZ = posZ;
-      this.posY = posY;
-      this.posX = 0.0;
-      this.color = color;
-      this.velocity = velocity;
-      this.ambient = 1;
-      this.transformed = false;
-      this.storedMat;
-    }
+const particle = class particle {
+  constructor(square, posZ, posY, color, velocity) {
+    this.square = square;
+    this.posZ = posZ;
+    this.posY = posY;
+    this.posX = 0.0;
+    this.color = color;
+    this.velocity = velocity;
+    this.ambient = 1;
+    this.transformed = false;
+    this.storedMat;
+  }
 
-    update(program_state) {
-      const t = program_state.animation_time / 1000,
+  update(program_state) {
+    const t = program_state.animation_time / 1000,
       dt = program_state.animation_delta_time / 1000;
 
-      this.posX += dt * this.velocity;
-      if(this.posX < -3.5)
-      {
-         this.posX = 0.0;
-         this.transformed = false;
-      }
-
-      
-      this.color = color(1.0, (-1.0 * this.posX/4.5), 0.0, 1.0 + this.posX/2);
+    this.posX += dt * this.velocity;
+    if (this.posX < -3.5) {
+      this.posX = 0.0;
+      this.transformed = false;
     }
 
+    this.color = color(1.0, (-1.0 * this.posX) / 4.5, 0.0, 1.0 + this.posX / 2);
   }
+};
 
 export class SpaceshipGame extends Scene {
   constructor() {
     super();
 
-
     this.particleSystem = [];
 
-    for(let bint = 0; bint < numParticles; bint++) {
-      let randPosZ = 0.6 * Math.random() - 0.3 ;
+    for (let bint = 0; bint < numParticles; bint++) {
+      let randPosZ = 0.6 * Math.random() - 0.3;
       let randPosY = 0.6 * Math.random() - 0.3;
 
-
-      let randSpeedX = -6.0 * Math.random();
-      if(randSpeedX > 0.0){
-        randSpeedX = -6.0 * Math.random();
-      }
-      this.particleSystem.push(new particle(new defs.Square(), randPosZ, randPosY, color(1.0, 0.0, 0.0, 1), randSpeedX));
+      // let randSpeedX = -6.0 * Math.random();
+      // if (randSpeedX > 0.0) {
+      //   randSpeedX = -6.0 * Math.random();
+      // }
+      let randSpeedX = Math.random() * -5 - 5;
+      this.particleSystem.push(
+        new particle(
+          new defs.Square(),
+          randPosZ,
+          randPosY,
+          color(1.0, 0.0, 0.0, 1),
+          randSpeedX
+        )
+      );
     }
 
     this.shapes = {
@@ -136,10 +139,7 @@ export class SpaceshipGame extends Scene {
       vec3(0, 1, 0)
     );
 
-    // this.game_start = false;
-    // this.game_over = false;
     this.game_playing = false;
-    // this.game_speed = 80;
     this.game_speed = 0;
 
     /****** TEST ******/
@@ -154,7 +154,6 @@ export class SpaceshipGame extends Scene {
     this.d_pressed = false;
     this.ship_speed = 30;
     this.ship_turn_speed = 3;
-    // this.ship_translation = Mat4.identity();
     this.ship_position = { x: 0, y: 0, z: 0 };
     this.ship_rotation = { horizontal: 0, vertical: 0, tilt: 0 };
 
@@ -162,21 +161,13 @@ export class SpaceshipGame extends Scene {
     this.text_scale = { x: 0.75, y: 0.75, z: 1 };
 
     this.score = 0;
-    this.high_score = 0;
   }
 
   make_control_panel() {
     this.key_triggered_button('Start', [' '], () => {
-      // if (!this.game_start || this.game_over) {
-      if (!this.game_playing) {
-        // this.game_over = false;
-        // this.game_start = true;
+      if (!this.game_playing && this.score <= 0) {
         this.game_playing = true;
         this.game_speed = 80;
-        this.score = 0;
-        this.ship_position = { x: 0, y: 0, z: 0 };
-        this.ship_rotation = { horizontal: 0, vertical: 0, tilt: 0 };
-        this.boards = [];
         for (let i = 0; i < 3; i++) {
           this.boards.push(new Board(-300 - 100 * i));
         }
@@ -260,7 +251,6 @@ export class SpaceshipGame extends Scene {
         vec4(
           this.ship_position.x,
           this.ship_position.y,
-          // this.game_over ? this.ship_position.z + 50 : this.ship_position.z,
           this.game_playing ? this.ship_position.z : this.ship_position.z + 50,
           1
         ),
@@ -269,9 +259,6 @@ export class SpaceshipGame extends Scene {
           Math.sin(this.ship_rotation.vertical),
           -5
         ),
-        // this.game_over ? color(1.0, 0, 0, 1.0) : color(1.0, 1.0, 1.0, 1.0),
-        // this.game_over ? 100000 : 3500,
-        // this.game_over ? 0 : Math.PI / 3.155
         this.game_playing ? color(1.0, 1.0, 1.0, 1.0) : color(1.0, 0, 0, 1.0),
         this.game_playing ? 3500 : 100000,
         this.game_playing ? Math.PI / 3.155 : 0
@@ -279,32 +266,15 @@ export class SpaceshipGame extends Scene {
     ];
 
     let text;
-    if (this.game_playing) text = Math.floor(this.score).toString();
-    else text = 'PRESS SPACE TO BEGIN';
-    this.shapes.text.set_string(text, context.context);
-    this.shapes.text.draw(
-      context,
-      program_state,
-      Mat4.translation(
-        this.text_position.x,
-        this.text_position.y,
-        this.text_position.z
-      )
-        .times(
-          Mat4.scale(this.text_scale.x, this.text_scale.y, this.text_scale.z)
-        )
-        .times(Mat4.translation((text.length - 1) * -0.75, 0, 0)),
-      this.materials.text_image
-    );
-    if (!this.game_playing && this.high_score > 0) {
-      (text = 'HIGH SCORE: ' + this.high_score),
-        this.shapes.text.set_string(text, context.context);
+    if (this.game_playing) {
+      text = Math.floor(this.score).toString();
+      this.shapes.text.set_string(text, context.context);
       this.shapes.text.draw(
         context,
         program_state,
         Mat4.translation(
           this.text_position.x,
-          this.text_position.y - 4,
+          this.text_position.y,
           this.text_position.z
         )
           .times(
@@ -313,6 +283,70 @@ export class SpaceshipGame extends Scene {
           .times(Mat4.translation((text.length - 1) * -0.75, 0, 0)),
         this.materials.text_image
       );
+    } else {
+      if (this.score <= 0) {
+        text = 'PRESS SPACE TO BEGIN';
+        this.shapes.text.set_string(text, context.context);
+        this.shapes.text.draw(
+          context,
+          program_state,
+          Mat4.translation(
+            this.text_position.x,
+            this.text_position.y,
+            this.text_position.z
+          )
+            .times(
+              Mat4.scale(
+                this.text_scale.x,
+                this.text_scale.y,
+                this.text_scale.z
+              )
+            )
+            .times(Mat4.translation((text.length - 1) * -0.75, 0, 0)),
+          this.materials.text_image
+        );
+      } else {
+        text = 'GAME OVER';
+        this.shapes.text.set_string(text, context.context);
+        this.shapes.text.draw(
+          context,
+          program_state,
+          Mat4.translation(
+            this.text_position.x,
+            this.text_position.y,
+            this.text_position.z
+          )
+            .times(
+              Mat4.scale(
+                this.text_scale.x,
+                this.text_scale.y,
+                this.text_scale.z
+              )
+            )
+            .times(Mat4.translation((text.length - 1) * -0.75, 0, 0)),
+          this.materials.text_image
+        );
+        text = 'SCORE: ' + Math.floor(this.score);
+        this.shapes.text.set_string(text, context.context);
+        this.shapes.text.draw(
+          context,
+          program_state,
+          Mat4.translation(
+            this.text_position.x,
+            this.text_position.y - 4,
+            this.text_position.z
+          )
+            .times(
+              Mat4.scale(
+                this.text_scale.x,
+                this.text_scale.y,
+                this.text_scale.z
+              )
+            )
+            .times(Mat4.translation((text.length - 1) * -0.75, 0, 0)),
+          this.materials.text_image
+        );
+      }
     }
 
     program_state.set_camera(
@@ -334,7 +368,7 @@ export class SpaceshipGame extends Scene {
       // if any obstacle has collided
       if (collision != null) {
         collision.fracture_at(this.ship_position); // fracture the collided obstacle
-        // this.game_playing = false; // end the game
+        this.game_playing = false; // end the game
       }
     }
 
@@ -365,35 +399,53 @@ export class SpaceshipGame extends Scene {
       context,
       program_state,
       ship_transform,
-      // .times(Mat4.rotation(Math.PI, 0, 1, 0)),
       this.materials.metal
     );
 
-
-      //let rotation_matrix = Mat4.identity().times(Mat4.rotation(Math.PI/2, 0, 0, 1));
-      
-      for(let q = 0; q < numParticles; q++) {
-      
-      let first_mat = ship_transform.times(
+    for (let q = 0; q < numParticles; q++) {
+      let first_mat = ship_transform
+        .times(
           Mat4.translation(
-            this.particleSystem[q].posX, 
-            this.particleSystem[q].posY, 
-            this.particleSystem[q].posZ)).times(Mat4.scale(.1, .1, .1)).times(Mat4.rotation(Math.PI/2, 0, 1, 0));
-        
-        if(!this.particleSystem[q].transformed || this.particleSystem[q].posX > -1.0) {
-          this.particleSystem[q].square.draw(context, program_state, first_mat, 
-           this.materials.color.override({ambient: this.particleSystem[q].ambient, color: this.particleSystem[q].color}));
-           this.particleSystem[q].storedMat = first_mat;
-           this.particleSystem[q].transformed = true;
-       }
-       else{
-         this.particleSystem[q].square.draw(context, program_state, this.particleSystem[q].storedMat, 
-           this.materials.color.override({ambient: this.particleSystem[q].ambient, color: this.particleSystem[q].color}));
-       }
+            this.particleSystem[q].posX,
+            this.particleSystem[q].posY,
+            this.particleSystem[q].posZ
+          )
+        )
+        .times(Mat4.scale(0.1, 0.1, 0.1))
+        .times(Mat4.rotation(Math.PI / 2, 0, 1, 0));
 
-        this.particleSystem[q].update(program_state);
-
+      if (
+        !this.particleSystem[q].transformed ||
+        this.particleSystem[q].posX > -1.0
+      ) {
+        this.particleSystem[q].square.draw(
+          context,
+          program_state,
+          first_mat,
+          this.materials.color.override({
+            ambient: this.particleSystem[q].ambient,
+            color: this.particleSystem[q].color,
+          })
+        );
+        this.particleSystem[q].storedMat = first_mat;
+        this.particleSystem[q].transformed = true;
+      } else {
+        this.particleSystem[q].square.draw(
+          context,
+          program_state,
+          this.particleSystem[q].storedMat,
+          this.materials.color.override({
+            ambient: this.particleSystem[q].ambient,
+            color:
+              Math.random() > 0.1
+                ? this.particleSystem[q].color
+                : hex_color('#777777'),
+          })
+        );
       }
+
+      this.particleSystem[q].update(program_state);
+    }
 
     this.shapes.skybox.draw(
       context,
@@ -401,7 +453,6 @@ export class SpaceshipGame extends Scene {
       Mat4.translation(0, 0, -300).times(Mat4.scale(400, 400, 1)),
       this.materials.space_skybox
     );
-
 
     if (this.game_playing) {
       this.score += dt;
