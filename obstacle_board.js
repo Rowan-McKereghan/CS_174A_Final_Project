@@ -84,7 +84,7 @@ export class Board {
   move(speed, dt) {
     for (let i = 0; i < 25; i++) this.obstacles[i].move(speed, dt);
     this.z += speed * dt; // increment this.z
-    if (this.z >= 20) this.reset(); // if this.z is at 100, we can reset
+    if (this.z >= 50) this.reset(); // if this.z is at 100, we can reset
   }
 
   // sets up the board values
