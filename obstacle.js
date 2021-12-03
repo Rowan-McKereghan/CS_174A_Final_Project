@@ -30,6 +30,8 @@ export class Obstacle {
     this.shadow_material = new Material(new defs.Shadow_Spotlight_Shader(1), {
     color: color(0, 0, 1, 1),
       ambient: 0.15,
+      color_texture: null,
+      light_depth_texture: null
       });
   }
 
@@ -63,6 +65,7 @@ export class Obstacle {
     //this.fragments.push(new Obstacle_Fragment(left, bottom, front, 2, 2));
 
     // four fragments
+    this.fragments = [];
     this.fragments.push(
       new Obstacle_Fragment(left, bottom, front, 1, 1, -1, -1)
     ); // lower-left
@@ -78,7 +81,13 @@ export class Obstacle {
   }
 
   // draw the unfractured obstacle on the screen
-  draw(context, program_state, shadow_pass) {
+  draw(context, program_state, shadow_pass, lightD) {
+    if(shadow_pass) {
+      this.shadow_material.override({light_depth_texture: lightD});
+    }
+    else{
+      this.shadow_material.override({light_depth_texture: null});
+    }
     if (!this.is_fractured) {
       this.cube.draw(
         context,
