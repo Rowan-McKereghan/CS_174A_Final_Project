@@ -59,6 +59,7 @@ export class Obstacle {
     //this.fragments.push(new Obstacle_Fragment(left, bottom, front, 2, 2));
 
     // four fragments
+    this.fragments = [];
     this.fragments.push(
       new Obstacle_Fragment(left, bottom, front, 1, 1, -1, -1)
     ); // lower-left
@@ -76,12 +77,7 @@ export class Obstacle {
   // draw the unfractured obstacle on the screen
   draw(context, program_state) {
     if (!this.is_fractured) {
-      this.cube.draw(
-        context,
-        program_state,
-        this.transform.times(Mat4.scale(1, 1, 0.1)),
-        this.material
-      );
+      this.cube.draw(context, program_state, this.transform, this.material);
     } else {
       /****** TEST ******/
       for (let i = 0; i < this.fragments.length; i++)

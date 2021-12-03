@@ -87,14 +87,17 @@ export class SpaceshipGame extends Scene {
       vec3(0, 1, 0)
     );
 
-    this.game_over = false;
-    this.game_speed = 80;
+    // this.game_start = false;
+    // this.game_over = false;
+    this.game_playing = false;
+    // this.game_speed = 80;
+    this.game_speed = 0;
 
     /****** TEST ******/
     this.boards = [];
-    for (let i = 0; i < 3; i++) {
-      this.boards.push(new Board(-300 - 100 * i));
-    }
+    // for (let i = 0; i < 3; i++) {
+    //   this.boards.push(new Board(-300 - 100 * i));
+    // }
 
     this.w_pressed = false;
     this.s_pressed = false;
@@ -105,15 +108,31 @@ export class SpaceshipGame extends Scene {
     // this.ship_translation = Mat4.identity();
     this.ship_position = { x: 0, y: 0, z: 0 };
     this.ship_rotation = { horizontal: 0, vertical: 0, tilt: 0 };
-    this.ship_collision_velocity = {};
 
     this.text_position = { x: 0, y: 8, z: 10 };
     this.text_scale = { x: 0.75, y: 0.75, z: 1 };
 
     this.score = 0;
+    this.high_score = 0;
   }
 
   make_control_panel() {
+    this.key_triggered_button('Start', [' '], () => {
+      // if (!this.game_start || this.game_over) {
+      if (!this.game_playing) {
+        // this.game_over = false;
+        // this.game_start = true;
+        this.game_playing = true;
+        this.game_speed = 80;
+        this.score = 0;
+        this.ship_position = { x: 0, y: 0, z: 0 };
+        this.ship_rotation = { horizontal: 0, vertical: 0, tilt: 0 };
+        this.boards = [];
+        for (let i = 0; i < 3; i++) {
+          this.boards.push(new Board(-300 - 100 * i));
+        }
+      }
+    });
     // move up
     this.key_triggered_button(
       'Up',
@@ -192,7 +211,8 @@ export class SpaceshipGame extends Scene {
         vec4(
           this.ship_position.x,
           this.ship_position.y,
-          this.game_over ? this.ship_position.z + 50 : this.ship_position.z,
+          // this.game_over ? this.ship_position.z + 50 : this.ship_position.z,
+          this.game_playing ? this.ship_position.z : this.ship_position.z + 50,
           1
         ),
         vec3(
@@ -200,16 +220,19 @@ export class SpaceshipGame extends Scene {
           Math.sin(this.ship_rotation.vertical),
           -5
         ),
-        this.game_over ? color(1.0, 0, 0, 1.0) : color(1.0, 1.0, 1.0, 1.0),
-        this.game_over ? 100000 : 3500,
-        this.game_over ? 0 : Math.PI / 3.155
+        // this.game_over ? color(1.0, 0, 0, 1.0) : color(1.0, 1.0, 1.0, 1.0),
+        // this.game_over ? 100000 : 3500,
+        // this.game_over ? 0 : Math.PI / 3.155
+        this.game_playing ? color(1.0, 1.0, 1.0, 1.0) : color(1.0, 0, 0, 1.0),
+        this.game_playing ? 3500 : 100000,
+        this.game_playing ? Math.PI / 3.155 : 0
       ),
     ];
 
-    this.shapes.text.set_string(
-      Math.floor(this.score).toString(),
-      context.context
-    );
+    let text;
+    if (this.game_playing) text = Math.floor(this.score).toString();
+    else text = 'PRESS SPACE TO BEGIN';
+    this.shapes.text.set_string(text, context.context);
     this.shapes.text.draw(
       context,
       program_state,
@@ -221,15 +244,27 @@ export class SpaceshipGame extends Scene {
         .times(
           Mat4.scale(this.text_scale.x, this.text_scale.y, this.text_scale.z)
         )
-        .times(
-          Mat4.translation(
-            (Math.floor(this.score).toString().length - 1) * -0.75,
-            0,
-            0
-          )
-        ),
+        .times(Mat4.translation((text.length - 1) * -0.75, 0, 0)),
       this.materials.text_image
     );
+    if (!this.game_playing && this.high_score > 0) {
+      (text = 'HIGH SCORE: ' + this.high_score),
+        this.shapes.text.set_string(text, context.context);
+      this.shapes.text.draw(
+        context,
+        program_state,
+        Mat4.translation(
+          this.text_position.x,
+          this.text_position.y - 4,
+          this.text_position.z
+        )
+          .times(
+            Mat4.scale(this.text_scale.x, this.text_scale.y, this.text_scale.z)
+          )
+          .times(Mat4.translation((text.length - 1) * -0.75, 0, 0)),
+        this.materials.text_image
+      );
+    }
 
     program_state.set_camera(
       this.initial_camera_location.map((x, i) =>
@@ -239,10 +274,10 @@ export class SpaceshipGame extends Scene {
 
     /****** TEST ******/
     // iterate through each board
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < this.boards.length; i++) {
       this.boards[i].draw(context, program_state, this.game_speed, dt); // draw the board
 
-      if (this.game_over) continue; // skip the collision check if the game is over
+      if (!this.game_playing) continue; // skip the collision check if the game is over
 
       // collision will hold an obstacle that collided with the ship
       let collision = this.boards[i].check_collision(this.ship_position);
@@ -250,7 +285,7 @@ export class SpaceshipGame extends Scene {
       // if any obstacle has collided
       if (collision != null) {
         collision.fracture_at(this.ship_position); // fracture the collided obstacle
-        this.game_over = true; // end the game
+        // this.game_playing = false; // end the game
       }
     }
 
@@ -292,8 +327,9 @@ export class SpaceshipGame extends Scene {
       this.materials.space_skybox
     );
 
-    if (!this.game_over) {
+    if (this.game_playing) {
       this.score += dt;
+      this.high_score = Math.max(this.high_score, Math.floor(this.score));
       this.game_speed += dt * 2;
       if (this.w_pressed) {
         if (this.ship_rotation.vertical < Math.PI / 4)
