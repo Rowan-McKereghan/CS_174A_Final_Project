@@ -21,9 +21,57 @@ const {
   Scene,
 } = tiny;
 
+const numParticles = 50;
+
+const particle = 
+  class particle {
+    constructor(square, posZ, posY, color, velocity) {
+      this.square = square
+      this.posZ = posZ;
+      this.posY = posY;
+      this.posX = 0.0;
+      this.color = color;
+      this.velocity = velocity;
+      this.ambient = 1;
+      this.transformed = false;
+      this.storedMat;
+    }
+
+    update(program_state) {
+      const t = program_state.animation_time / 1000,
+      dt = program_state.animation_delta_time / 1000;
+
+      this.posX += dt * this.velocity;
+      if(this.posX < -3.5)
+      {
+         this.posX = 0.0;
+         this.transformed = false;
+      }
+
+      
+      this.color = color(1.0, (-1.0 * this.posX/4.5), 0.0, 1.0 + this.posX/2);
+    }
+
+  }
+
 export class SpaceshipGame extends Scene {
   constructor() {
     super();
+
+
+    this.particleSystem = [];
+
+    for(let bint = 0; bint < numParticles; bint++) {
+      let randPosZ = 0.6 * Math.random() - 0.3 ;
+      let randPosY = 0.6 * Math.random() - 0.3;
+
+
+      let randSpeedX = -6.0 * Math.random();
+      if(randSpeedX > 0.0){
+        randSpeedX = -6.0 * Math.random();
+      }
+      this.particleSystem.push(new particle(new defs.Square(), randPosZ, randPosY, color(1.0, 0.0, 0.0, 1), randSpeedX));
+    }
 
     this.shapes = {
       square: new defs.Square(),
@@ -43,6 +91,7 @@ export class SpaceshipGame extends Scene {
     this.materials = {
       basic: new Material(new defs.Basic_Shader()),
       color: new Material(new defs.Phong_Shader(), {
+        ambient: 1,
         color: hex_color('#000000'),
       }),
       transparent: new Material(new defs.Phong_Shader(), {
@@ -350,12 +399,39 @@ export class SpaceshipGame extends Scene {
       this.materials.metal
     );
 
+
+      //let rotation_matrix = Mat4.identity().times(Mat4.rotation(Math.PI/2, 0, 0, 1));
+      
+      for(let q = 0; q < numParticles; q++) {
+      
+      let first_mat = ship_transform.times(
+          Mat4.translation(
+            this.particleSystem[q].posX, 
+            this.particleSystem[q].posY, 
+            this.particleSystem[q].posZ)).times(Mat4.scale(.1, .1, .1)).times(Mat4.rotation(Math.PI/2, 0, 1, 0));
+        
+        if(!this.particleSystem[q].transformed || this.particleSystem[q].posX > -1.0) {
+          this.particleSystem[q].square.draw(context, program_state, first_mat, 
+           this.materials.color.override({ambient: this.particleSystem[q].ambient, color: this.particleSystem[q].color}));
+           this.particleSystem[q].storedMat = first_mat;
+           this.particleSystem[q].transformed = true;
+       }
+       else{
+         this.particleSystem[q].square.draw(context, program_state, this.particleSystem[q].storedMat, 
+           this.materials.color.override({ambient: this.particleSystem[q].ambient, color: this.particleSystem[q].color}));
+       }
+
+        this.particleSystem[q].update(program_state);
+
+      }
+
     this.shapes.skybox.draw(
       context,
       program_state,
       Mat4.translation(0, 0, -300).times(Mat4.scale(400, 400, 1)),
       this.materials.space_skybox
     );
+
 
     if (this.game_playing) {
       this.score += dt;
